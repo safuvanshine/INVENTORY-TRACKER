@@ -1,0 +1,139 @@
+@import "tailwindcss";
+
+:root {
+  --primary-navy: #0f172a;
+  --primary-container: #131b2e;
+  --gold-accent: #d4af37;
+  --gold-light: #fed65b;
+  --gold-dim: #e9c349;
+  --gold-dark: #735c00;
+  --emerald-green: #065f46;
+  --emerald-container: #002116;
+  --emerald-tint: #479175;
+  --emerald-light: #a6f2d1;
+  --crimson-red: #ba1a1a;
+  --crimson-bg: #ffdad6;
+  --crimson-text: #93000a;
+  --canvas-bg: #f7f9fb;
+  --surface-white: #ffffff;
+  --surface-low: #f2f4f6;
+  --surface-container: #eceef0;
+  --surface-high: #e6e8ea;
+  --border-slate: #e2e8f0;
+  --text-dark: #191c1e;
+  --text-muted: #45464d;
+  --text-subtle: #76777d;
+}
+
+body {
+  background-color: var(--canvas-bg);
+  color: var(--text-dark);
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, .font-headline {
+  font-family: var(--font-montserrat), system-ui, sans-serif;
+}
+
+.font-tabular {
+  font-family: var(--font-inter), monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Luxury Soft Bloom Shadow */
+.soft-bloom {
+  box-shadow: 0px 4px 24px rgba(15, 23, 42, 0.04);
+}
+
+.soft-bloom-hover:hover {
+  box-shadow: 0px 10px 32px rgba(15, 23, 42, 0.09);
+}
+
+.soft-bloom-gold {
+  box-shadow: 0px 4px 20px rgba(212, 175, 55, 0.15);
+}
+
+/* Continuous Horizontal Ticker Animation */
+@keyframes ticker-marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-ticker {
+  display: flex;
+  width: max-content;
+  animation: ticker-marquee 35s linear infinite;
+}
+
+.animate-ticker:hover {
+  animation-play-state: paused;
+}
+
+/* Custom Table Row Hover */
+.luxury-row {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  border-left: 2px solid transparent;
+}
+
+.luxury-row:hover {
+  background-color: #ffffff;
+  border-left-color: #d4af37;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+  z-index: 5;
+}
+
+/* Custom Sleek Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Pill status glow */
+.glow-emerald {
+  box-shadow: 0 0 12px rgba(6, 95, 70, 0.25);
+}
+
+.glow-gold {
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.3);
+}
+
+/* Voice mic pulse ring animation */
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+.animate-pulse-ring {
+  animation: pulse-ring 1.2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+/* Mic wave bars */
+@keyframes mic-wave {
+  0%, 100% { height: 4px; }
+  50% { height: 16px; }
+}
+.mic-wave-bar {
+  animation: mic-wave 0.8s ease-in-out infinite;
+}
+.mic-wave-bar:nth-child(2) { animation-delay: 0.15s; }
+.mic-wave-bar:nth-child(3) { animation-delay: 0.3s; }
+.mic-wave-bar:nth-child(4) { animation-delay: 0.15s; }
+
