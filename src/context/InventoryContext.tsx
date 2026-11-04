@@ -1,6 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { db } from '@/lib/firebase';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import {
   GoldItem,
   DiamondItem,
@@ -113,91 +115,83 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
   const [tickerMovements, setTickerMovements] = useState<TickerMovement[]>(INITIAL_TICKER_MOVEMENTS);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
-  // Sync state between client (localStorage cache) and central server repository (/api/inventory)
+  const isSyncingFromRemote = useRef(false);
+
+  // Realtime multi-device sync via Firebase Firestore
   useEffect(() => {
-    let isMounted = true;
+    let unsubscribe = () => {};
 
-    const initializeLedger = async () => {
-      try {
-        // 1. Fetch live shared ledger from server
-        const res = await fetch('/api/inventory');
-        const result = await res.json();
+    try {
+      const inventoryDocRef = doc(db, 'vault', 'inventory');
 
-        if (result.success && result.data && isMounted) {
-          const serverData = result.data;
-          // If server already has saved items, use them as truth for ALL browsers & links!
-          if (serverData.goldItems && serverData.goldItems.length > 0) {
-            setGoldItems(serverData.goldItems);
+      unsubscribe = onSnapshot(
+        inventoryDocRef,
+        async (snapshot) => {
+          if (snapshot.exists()) {
+            const serverData = snapshot.data();
+            isSyncingFromRemote.current = true;
+            if (serverData.goldItems) setGoldItems(serverData.goldItems);
+            if (serverData.diamondItems) setDiamondItems(serverData.diamondItems);
+            if (serverData.alerts) setAlerts(serverData.alerts);
+            if (serverData.auditLogs) setAuditLogs(serverData.auditLogs);
+            if (serverData.users) setUsers(serverData.users);
+            if (serverData.goldSpotPrice) setGoldSpotPrice(serverData.goldSpotPrice);
+            setIsLoaded(true);
+
+            setTimeout(() => {
+              isSyncingFromRemote.current = false;
+            }, 300);
+          } else {
+            // First time connecting: seed initial items into Firestore
+            const initialPayload = {
+              goldItems: INITIAL_GOLD_ITEMS,
+              diamondItems: INITIAL_DIAMOND_ITEMS,
+              alerts: INITIAL_ALERTS,
+              auditLogs: INITIAL_AUDIT_LOGS,
+              users: INITIAL_USERS,
+              goldSpotPrice: GOLD_SPOT_PRICE_PER_GRAM,
+              lastSynced: new Date().toISOString()
+            };
+            try {
+              await setDoc(inventoryDocRef, initialPayload);
+            } catch (err) {
+              console.error('Failed to seed Firestore:', err);
+            }
+            setIsLoaded(true);
           }
-          if (serverData.diamondItems && serverData.diamondItems.length > 0) {
-            setDiamondItems(serverData.diamondItems);
-          }
-          if (serverData.alerts) setAlerts(serverData.alerts);
-          if (serverData.auditLogs) setAuditLogs(serverData.auditLogs);
-          if (serverData.users) setUsers(serverData.users);
-          if (serverData.goldSpotPrice) setGoldSpotPrice(serverData.goldSpotPrice);
-        } else {
-          // 2. Server uninitialized: check if this client already has localStorage data (e.g. from Chrome)
-          const storedGold = localStorage.getItem(STORAGE_KEYS.GOLD);
-          const storedDiamond = localStorage.getItem(STORAGE_KEYS.DIAMOND);
-          const storedAlerts = localStorage.getItem(STORAGE_KEYS.ALERTS);
-          const storedLogs = localStorage.getItem(STORAGE_KEYS.AUDIT_LOGS);
-          const storedUsers = localStorage.getItem(STORAGE_KEYS.USERS);
-          const storedSpot = localStorage.getItem(STORAGE_KEYS.SPOT_PRICE);
-
-          const initialGold = storedGold ? JSON.parse(storedGold) : INITIAL_GOLD_ITEMS;
-          const initialDiamond = storedDiamond ? JSON.parse(storedDiamond) : INITIAL_DIAMOND_ITEMS;
-          const initialAlerts = storedAlerts ? JSON.parse(storedAlerts) : INITIAL_ALERTS;
-          const initialLogs = storedLogs ? JSON.parse(storedLogs) : INITIAL_AUDIT_LOGS;
-          const initialUsers = storedUsers ? JSON.parse(storedUsers) : INITIAL_USERS;
-          const initialSpot = storedSpot ? parseFloat(storedSpot) : GOLD_SPOT_PRICE_PER_GRAM;
-
-          if (isMounted) {
-            setGoldItems(initialGold);
-            setDiamondItems(initialDiamond);
-            setAlerts(initialAlerts);
-            setAuditLogs(initialLogs);
-            setUsers(initialUsers);
-            setGoldSpotPrice(initialSpot);
-          }
-
-          // Immediately sync to server so Edge and other browsers see this
-          await fetch('/api/inventory', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              goldItems: initialGold,
-              diamondItems: initialDiamond,
-              alerts: initialAlerts,
-              auditLogs: initialLogs,
-              users: initialUsers,
-              goldSpotPrice: initialSpot
-            })
-          });
+        },
+        async (error) => {
+          console.warn('Firestore sync note (fallback to local):', error);
+          // Fallback to local / server API if offline
+          try {
+            const res = await fetch('/api/inventory');
+            const result = await res.json();
+            if (result.success && result.data) {
+              if (result.data.goldItems) setGoldItems(result.data.goldItems);
+              if (result.data.diamondItems) setDiamondItems(result.data.diamondItems);
+              if (result.data.alerts) setAlerts(result.data.alerts);
+              if (result.data.auditLogs) setAuditLogs(result.data.auditLogs);
+              if (result.data.users) setUsers(result.data.users);
+              if (result.data.goldSpotPrice) setGoldSpotPrice(result.data.goldSpotPrice);
+            }
+          } catch {}
+          setIsLoaded(true);
         }
-      } catch (err) {
-        console.error('Failed to sync with central server ledger, using local cache:', err);
-        try {
-          const storedGold = localStorage.getItem(STORAGE_KEYS.GOLD);
-          if (storedGold && isMounted) setGoldItems(JSON.parse(storedGold));
-          const storedDiamond = localStorage.getItem(STORAGE_KEYS.DIAMOND);
-          if (storedDiamond && isMounted) setDiamondItems(JSON.parse(storedDiamond));
-        } catch {}
-      } finally {
-        if (isMounted) setIsLoaded(true);
-      }
-    };
-
-    initializeLedger();
+      );
+    } catch (err) {
+      console.error('Failed to attach Firestore listener:', err);
+      setIsLoaded(true);
+    }
 
     return () => {
-      isMounted = false;
+      unsubscribe();
     };
   }, []);
 
-  // Save changes to localStorage AND broadcast to central server whenever state updates
+  // Save changes to localStorage, Firebase Firestore, and API whenever state updates
   useEffect(() => {
     if (!isLoaded) return;
+    if (isSyncingFromRemote.current) return;
 
     // Cache locally
     try {
@@ -211,23 +205,34 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       console.error('Failed to save to localStorage cache', e);
     }
 
-    // Debounced sync to server file
+    // Debounced sync to Firebase Firestore and local server
     const syncTimeout = setTimeout(async () => {
+      const payload = {
+        goldItems,
+        diamondItems,
+        alerts,
+        auditLogs,
+        users,
+        goldSpotPrice,
+        lastSynced: new Date().toISOString()
+      };
+
+      // 1. Sync live to Firebase Firestore
+      try {
+        await setDoc(doc(db, 'vault', 'inventory'), payload, { merge: true });
+      } catch (err) {
+        console.error('Failed to broadcast inventory update to Firestore:', err);
+      }
+
+      // 2. Sync to local API fallback
       try {
         await fetch('/api/inventory', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            goldItems,
-            diamondItems,
-            alerts,
-            auditLogs,
-            users,
-            goldSpotPrice
-          })
+          body: JSON.stringify(payload)
         });
       } catch (err) {
-        console.error('Failed to broadcast inventory update to server:', err);
+        // silent
       }
     }, 350);
 
@@ -627,6 +632,19 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem(STORAGE_KEYS.USERS);
       localStorage.removeItem(STORAGE_KEYS.SPOT_PRICE);
     } catch (e) {}
+
+    // Reset Firestore live document
+    try {
+      setDoc(doc(db, 'vault', 'inventory'), {
+        goldItems: INITIAL_GOLD_ITEMS,
+        diamondItems: INITIAL_DIAMOND_ITEMS,
+        alerts: INITIAL_ALERTS,
+        auditLogs: INITIAL_AUDIT_LOGS,
+        users: INITIAL_USERS,
+        goldSpotPrice: GOLD_SPOT_PRICE_PER_GRAM,
+        lastSynced: new Date().toISOString()
+      }).catch(() => {});
+    } catch {}
 
     fetch('/api/inventory', {
       method: 'POST',
