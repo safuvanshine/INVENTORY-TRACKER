@@ -209,16 +209,7 @@ export function TopHeader() {
           )}
         </div>
 
-        {/* User Profile avatar */}
-        <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
-          <div className="w-8 h-8 rounded-full bg-[#0f172a] text-[#fed65b] flex items-center justify-center text-xs font-bold shadow-sm ring-1 ring-slate-300">
-            JS
-          </div>
-          <div className="hidden xl:block text-left">
-            <p className="text-xs font-bold text-slate-900 leading-tight">Jonathan S.</p>
-            <p className="text-[10px] text-slate-500 font-mono">Master Admin</p>
-          </div>
-        </div>
+
       </div>
 
       {/* Mobile Drawer Menu */}
