@@ -87,6 +87,7 @@ export interface UserAccount {
   branch: string;
   activeStatus: 'Active' | 'Idle' | 'Offline';
   lastActive: string;
+  password?: string;
 }
 
 export interface TickerMovement {

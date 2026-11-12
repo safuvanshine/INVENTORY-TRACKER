@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useInventory } from '@/context/InventoryContext';
+import { useAuth } from '@/context/AuthContext';
 import { Badge } from '@/components/ui/Badge';
 import { LiveTicker } from '@/components/layout/LiveTicker';
 import { AddItemModal } from '@/components/modals/AddItemModal';
@@ -82,13 +83,18 @@ export default function AdminPage() {
   const [changePassSuccess, setChangePassSuccess] = useState<string>('');
   const [isChangingPass, setIsChangingPass] = useState<boolean>(false);
 
+  const { currentUser, isAdmin } = useAuth();
+
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (isAdmin) {
+      setIsAuthenticated(true);
+      setIsAuthChecking(false);
+    } else if (typeof window !== 'undefined') {
       const isAuth = sessionStorage.getItem('SHINE_ADMIN_AUTH') === 'true';
       setIsAuthenticated(isAuth);
       setIsAuthChecking(false);
     }
-  }, []);
+  }, [isAdmin]);
 
   const handleVerifyPassword = async (e: React.FormEvent) => {
     e.preventDefault();

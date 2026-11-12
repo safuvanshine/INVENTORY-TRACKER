@@ -11,9 +11,11 @@ import {
   TrendingUp,
   X,
   Menu,
-  Gem
+  Gem,
+  LogOut
 } from 'lucide-react';
 import { useInventory } from '@/context/InventoryContext';
+import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -28,6 +30,7 @@ export function TopHeader() {
     dismissAlert,
     goldSpotPrice
   } = useInventory();
+  const { currentUser, logout, isAdmin } = useAuth();
 
   const [showAlertMenu, setShowAlertMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -209,7 +212,36 @@ export function TopHeader() {
           )}
         </div>
 
-
+        {/* User Profile pill with Logout */}
+        {currentUser && (
+          <div className="flex items-center gap-2 pl-3 border-l border-slate-200">
+            <div className="w-8 h-8 rounded-full bg-[#0f172a] text-[#fed65b] flex items-center justify-center text-xs font-bold shadow-sm ring-1 ring-slate-300">
+              {currentUser.initials || currentUser.name.slice(0, 2).toUpperCase()}
+            </div>
+            <div className="hidden xl:block text-left">
+              <p className="text-xs font-bold text-slate-900 leading-tight flex items-center gap-1.5">
+                <span>{currentUser.name}</span>
+                {isAdmin ? (
+                  <span className="text-[9px] text-[#fed65b] bg-[#0f172a] px-1.5 py-0.5 rounded font-mono font-bold uppercase tracking-wider">
+                    Admin
+                  </span>
+                ) : (
+                  <span className="text-[9px] text-slate-600 bg-slate-200 px-1.5 py-0.5 rounded font-mono font-bold uppercase tracking-wider">
+                    Staff
+                  </span>
+                )}
+              </p>
+              <p className="text-[10px] text-slate-500 font-mono">{currentUser.role}</p>
+            </div>
+            <button
+              onClick={logout}
+              title="Sign Out / Lock Vault"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors ml-1"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Mobile Drawer Menu */}

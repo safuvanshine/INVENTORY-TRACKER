@@ -14,6 +14,7 @@ export function ProvisionUserModal({ isOpen, onClose }: ProvisionUserModalProps)
   const { addUser, branches } = useInventory();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('staff123');
   const [role, setRole] = useState<UserAccount['role']>('Vault Manager');
   const [branch, setBranch] = useState(branches[0]?.name || 'London Mayfair Vault');
 
@@ -26,6 +27,7 @@ export function ProvisionUserModal({ isOpen, onClose }: ProvisionUserModalProps)
     addUser({
       name,
       email,
+      password: password.trim() || 'staff123',
       role,
       branch,
       activeStatus: 'Active'
@@ -115,6 +117,20 @@ export function ProvisionUserModal({ isOpen, onClose }: ProvisionUserModalProps)
                 ))}
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 font-mono mb-1">
+              Login Password / Security PIN *
+            </label>
+            <input
+              type="text"
+              required
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="e.g. staff123"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-900 focus:bg-white font-mono"
+            />
           </div>
 
           <div className="pt-3 border-t border-slate-200 flex justify-end gap-2">

@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useInventory } from '@/context/InventoryContext';
+import { useAuth } from '@/context/AuthContext';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { Badge } from '@/components/ui/Badge';
 import { LiveTicker } from '@/components/layout/LiveTicker';
@@ -29,6 +30,7 @@ export default function GoldInventoryPage() {
     goldSpotPrice,
     totalGoldWeightKg
   } = useInventory();
+  const { isAdmin } = useAuth();
 
   // Modals
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState<boolean>(false);
@@ -150,13 +152,15 @@ export default function GoldInventoryPage() {
           </div>
 
           <div className="flex items-center gap-2.5">
-            <button
-              onClick={() => setIsBulkUploadOpen(true)}
-              className="px-3.5 py-2 rounded-xl bg-[#0f172a] text-[#fed65b] text-xs font-bold hover:bg-slate-800 shadow-md flex items-center gap-1.5 transition-all"
-            >
-              <UploadCloud className="w-3.5 h-3.5 text-[#d4af37]" />
-              Bulk Intake (Excel / CSV)
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setIsBulkUploadOpen(true)}
+                className="px-3.5 py-2 rounded-xl bg-[#0f172a] text-[#fed65b] text-xs font-bold hover:bg-slate-800 shadow-md flex items-center gap-1.5 transition-all"
+              >
+                <UploadCloud className="w-3.5 h-3.5 text-[#d4af37]" />
+                Bulk Intake (Excel / CSV)
+              </button>
+            )}
             <button
               onClick={handleExport}
               className="px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-sm flex items-center gap-1.5 transition-all"

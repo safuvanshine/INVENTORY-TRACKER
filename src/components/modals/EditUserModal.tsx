@@ -18,6 +18,7 @@ export function EditUserModal({ isOpen, onClose, user }: EditUserModalProps) {
   const [role, setRole] = useState<UserAccount['role']>('Vault Manager');
   const [branch, setBranch] = useState('');
   const [activeStatus, setActiveStatus] = useState<UserAccount['activeStatus']>('Active');
+  const [password, setPassword] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -26,6 +27,7 @@ export function EditUserModal({ isOpen, onClose, user }: EditUserModalProps) {
       setRole(user.role);
       setBranch(user.branch || (branches[0]?.name ?? 'London Mayfair Vault'));
       setActiveStatus(user.activeStatus);
+      setPassword(user.password || '');
     }
   }, [user, branches]);
 
@@ -40,7 +42,8 @@ export function EditUserModal({ isOpen, onClose, user }: EditUserModalProps) {
       email: email.trim(),
       role,
       branch,
-      activeStatus
+      activeStatus,
+      ...(password.trim() ? { password: password.trim() } : {})
     });
 
     onClose();
@@ -159,6 +162,19 @@ export function EditUserModal({ isOpen, onClose, user }: EditUserModalProps) {
                 </button>
               ))}
             </div>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 font-mono mb-1">
+              Reset Password / Security PIN
+            </label>
+            <input
+              type="text"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="Leave blank to keep current password"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-900 focus:bg-white font-mono"
+            />
           </div>
 
           <div className="pt-3 border-t border-slate-200 flex justify-end gap-2">
