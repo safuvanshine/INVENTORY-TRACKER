@@ -180,7 +180,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       );
     } catch (err) {
       console.error('Failed to attach Firestore listener:', err);
-      setIsLoaded(true);
+      setTimeout(() => setIsLoaded(true), 0);
     }
 
     return () => {

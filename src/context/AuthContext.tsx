@@ -24,12 +24,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Restore session from localStorage
   useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout>;
     try {
       const stored = localStorage.getItem(AUTH_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed && parsed.id) {
-          setCurrentUser(parsed);
+          timeout = setTimeout(() => {
+            setCurrentUser(parsed);
+          }, 0);
         }
       }
     } catch (e) {
@@ -37,6 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
+    return () => clearTimeout(timeout);
   }, []);
 
   const login = async (usernameOrEmail: string, password: string): Promise<{ success: boolean; error?: string }> => {
