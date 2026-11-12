@@ -1,6 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 :root {
+  --font-inter: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-montserrat: 'Montserrat', system-ui, sans-serif;
   --primary-navy: #0f172a;
   --primary-container: #131b2e;
   --gold-accent: #d4af37;

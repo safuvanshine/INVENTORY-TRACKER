@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { Montserrat, Inter } from 'next/font/google';
 import './globals.css';
 import { InventoryProvider } from '@/context/InventoryContext';
 import { AuthProvider } from '@/context/AuthContext';
@@ -8,20 +7,6 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { TopHeader } from '@/components/layout/TopHeader';
 import { ToastContainer } from '@/components/ui/ToastContainer';
 import { AIAssistantModal } from '@/components/ai/AIAssistantModal';
-
-const montserrat = Montserrat({
-  subsets: ['latin'],
-  variable: '--font-montserrat',
-  weight: ['400', '500', '600', '700', '800'],
-  display: 'swap'
-});
-
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-  weight: ['400', '500', '600', '700'],
-  display: 'swap'
-});
 
 export const metadata: Metadata = {
   title: 'SHINE GOLD & DIAMONDS — Preserving Purity',
@@ -37,7 +22,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${montserrat.variable} ${inter.variable}`}>
+    <html lang="en">
       <body className="bg-[#f7f9fb] text-slate-900 min-h-screen antialiased flex selection:bg-[#fed65b] selection:text-[#0f172a]">
         <InventoryProvider>
           <AuthProvider>
