@@ -112,7 +112,7 @@ export function TopHeader() {
               aria-label="Filter active vault location"
               className="bg-transparent border-none text-xs font-semibold text-slate-800 focus:outline-none cursor-pointer pr-1"
             >
-              <option value="All Branches">All Vaults (13 Branches)</option>
+              <option value="All Branches">All Branches (14)</option>
               {branches.map(b => (
                 <option key={b.id} value={b.name}>
                   {b.name} ({b.code})

@@ -25,7 +25,7 @@ export function EditUserModal({ isOpen, onClose, user }: EditUserModalProps) {
       setName(user.name);
       setEmail(user.email);
       setRole(user.role);
-      setBranch(user.branch || (branches[0]?.name ?? 'London Mayfair Vault'));
+      setBranch(user.branch || (branches[0]?.name ?? 'HO'));
       setActiveStatus(user.activeStatus);
       setPassword(user.password || '');
     }

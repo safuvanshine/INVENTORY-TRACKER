@@ -282,7 +282,7 @@ export function AIAssistantModal() {
       id: 'welcome',
       sender: 'ai',
       type: 'text',
-      text: `Hello! I'm **RUBY**, your **SHINE AI Vault Copilot** powered by Google Gemini.\n\n🔗 Synced with your live vault inventory — ${diamondItems.length} diamonds & ${goldItems.length} gold items.\n\n🌐 **Multilingual**: Chat in English, Malayalam (Manglish), or Hindi!\n\n🎙️ **Voice Ready**: Tap the mic button or type your query below.\n\n**Try asking:**\n• "VVS2 E pear shape 1.5 to 2 carat diamond available?\"\n• "Show total vault valuation"\n• "Gold stock in London Mayfair"`,
+      text: `Hello! I'm **RUBY**, your **SHINE AI Vault Copilot** powered by Google Gemini.\n\n🔗 Synced with your live vault inventory — ${diamondItems.length} diamonds & ${goldItems.length} gold items.\n\n🌐 **Multilingual**: Chat in English, Malayalam (Manglish), or Hindi!\n\n🎙️ **Voice Ready**: Tap the mic button or type your query below.\n\n**Try asking:**\n• "VVS2 E pear shape 1.5 to 2 carat diamond available?\"\n• "Show total vault valuation"\n• "Gold stock in HO"`,
       timestamp: 'Just now'
     }
   ]);
@@ -400,7 +400,7 @@ export function AIAssistantModal() {
       }
 
       // Branch filter
-      const branchNames = ['london', 'geneva', 'dubai', 'paris', 'new york', 'zurich', 'milan', 'tokyo'];
+      const branchNames = ['ho', 's1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10', 's11', 's12', 's13'];
       for (const branch of branchNames) {
         if (q.includes(branch)) {
           filtered = filtered.filter(d => d.branch.toLowerCase().includes(branch));
@@ -463,7 +463,7 @@ export function AIAssistantModal() {
       q.includes('coin') || q.includes('bullion') || q.includes('pieces') || q.includes('piece')) {
       let filtered = [...goldItems];
 
-      const branchNames = ['london', 'geneva', 'dubai', 'paris', 'new york', 'zurich', 'milan', 'tokyo'];
+      const branchNames = ['ho', 's1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10', 's11', 's12', 's13'];
       for (const branch of branchNames) {
         if (q.includes(branch)) {
           filtered = filtered.filter(g => g.branch.toLowerCase().includes(branch));
@@ -549,7 +549,7 @@ export function AIAssistantModal() {
     // ── General summary ──
     const grandTotal = totalGoldValueUsd + totalDiamondValueUsd;
     return {
-      text: `📊 **RUBY Live Vault Summary:**\n\n• **Total Gold**: **${formatNumber(totalGoldWeightKg, 3)} kg** (${goldItems.length} lots) — **${formatUsd(totalGoldValueUsd)}**\n• **Gold Spot**: **$${goldSpotPrice.toFixed(2)}/g**\n• **Total Diamonds**: **${formatNumber(totalDiamondCarats, 2)} ct** (${diamondItems.length} stones) — **${formatUsd(totalDiamondValueUsd)}**\n• **Combined Vault Value**: **${formatUsd(grandTotal)}**\n• **Active Branches**: 8 Global Vaults synced.\n\nAsk me about specific diamond clarity, shape, carat range, branch stock, or gold holdings!`
+      text: `📊 **RUBY Live Vault Summary:**\n\n• **Total Gold**: **${formatNumber(totalGoldWeightKg, 3)} kg** (${goldItems.length} lots) — **${formatUsd(totalGoldValueUsd)}**\n• **Gold Spot**: **$${goldSpotPrice.toFixed(2)}/g**\n• **Total Diamonds**: **${formatNumber(totalDiamondCarats, 2)} ct** (${diamondItems.length} stones) — **${formatUsd(totalDiamondValueUsd)}**\n• **Combined Vault Value**: **${formatUsd(grandTotal)}**\n• **Active Branches**: 14 Branches synced.\n\nAsk me about specific diamond clarity, shape, carat range, branch stock, or gold holdings!`
     };
   }, [diamondItems, goldItems, totalGoldWeightKg, totalGoldValueUsd, totalDiamondCarats, totalDiamondValueUsd, goldSpotPrice]);
 

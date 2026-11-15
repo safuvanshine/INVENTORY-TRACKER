@@ -14,7 +14,7 @@ export function ProvisionUserModal({ isOpen, onClose }: ProvisionUserModalProps)
   const { addUser, branches } = useInventory();
   const [name, setName] = useState('');
   const [password, setPassword] = useState('staff123');
-  const [branch, setBranch] = useState(branches[0]?.name || 'Dubai DIFC Vault');
+  const [branch, setBranch] = useState(branches[0]?.name || 'HO');
 
   if (!isOpen) return null;
 
@@ -30,7 +30,7 @@ export function ProvisionUserModal({ isOpen, onClose }: ProvisionUserModalProps)
       email: generatedEmail,
       password: password.trim() || 'staff123',
       role: 'Vault Manager',
-      branch: branch || branches[0]?.name || 'Dubai DIFC Vault',
+      branch: branch || branches[0]?.name || 'HO',
       activeStatus: 'Active'
     });
 

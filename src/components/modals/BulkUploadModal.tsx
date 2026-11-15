@@ -219,7 +219,7 @@ export function BulkUploadModal({ isOpen, onClose, targetCategory = 'gold' }: Bu
               row,
               ['branch', 'vault location', 'vault', 'location', 'store', 'showroom', 'hub'],
               /(?:branch|vault|location|store)/i
-            ) || 'London Mayfair Vault'
+            ) || 'HO'
           ).trim();
 
           const purityCandidate = String(
@@ -290,7 +290,7 @@ export function BulkUploadModal({ isOpen, onClose, targetCategory = 'gold' }: Bu
               row,
               ['branch', 'branch name', 'vault location', 'vault', 'location', 'store', 'showroom', 'warehouse', 'hub', 'city'],
               /(?:branch|vault|location|store|hub)/i
-            ) || 'Geneva Vault A'
+            ) || 'HO'
           ).trim();
 
           // 6. CARAT - Robust Matching & Fallback

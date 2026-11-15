@@ -47,7 +47,7 @@ export interface Branch {
   name: string;
   city: string;
   country: string;
-  region: 'Europe' | 'Middle East' | 'Americas' | 'Asia Pacific';
+  region: string;
   totalGoldKg: number;
   totalDiamondCarats: number;
   activeVaults: number;

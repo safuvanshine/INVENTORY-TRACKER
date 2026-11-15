@@ -82,7 +82,7 @@ export function downloadExcelGoldTemplate() {
       'DESCRIPTION': '999.9 Fine Gold Bar Standard Assay',
       'BRAND': 'PAMP Suisse',
       'WEIGHT': 12.400,
-      'BRANCH': 'London Mayfair Vault'
+      'BRANCH': 'HO'
     },
     {
       'TAG NUMBER': 'AU-GVA-104',
@@ -91,7 +91,7 @@ export function downloadExcelGoldTemplate() {
       'DESCRIPTION': '22K Collector Coin Box 50x',
       'BRAND': 'Valcambi',
       'WEIGHT': 1.555,
-      'BRANCH': 'Geneva Safe 3'
+      'BRANCH': 'S1'
     },
     {
       'TAG NUMBER': 'AU-NY-089',
@@ -100,7 +100,7 @@ export function downloadExcelGoldTemplate() {
       'DESCRIPTION': '24K Sealed Pure Investment Grain',
       'BRAND': 'Perth Mint',
       'WEIGHT': 5.200,
-      'BRANCH': 'New York 5th Avenue'
+      'BRANCH': 'S2'
     },
     {
       'TAG NUMBER': 'AU-DXB-012',
@@ -109,7 +109,7 @@ export function downloadExcelGoldTemplate() {
       'DESCRIPTION': '24K Cast Bullion Bar Fine Assay',
       'BRAND': 'Argor-Heraeus',
       'WEIGHT': 1.000,
-      'BRANCH': 'Dubai Gold Souk'
+      'BRANCH': 'S3'
     }
   ];
 
@@ -139,7 +139,7 @@ export function downloadExcelDiamondTemplate() {
       'ITEM': 'Diamond Solitaire Ring',
       'CERTIFICATE NUMBER': 'GIA-64291882',
       'DESCRIPTION': 'Natural Round Brilliant Triple Ex Cut',
-      'BRANCH': 'Geneva Vault A',
+      'BRANCH': 'HO',
       'CARAT': 3.20,
       'CLARITY': 'VVS1',
       'SHAPE': 'Round Brilliant',
@@ -151,7 +151,7 @@ export function downloadExcelDiamondTemplate() {
       'ITEM': 'Emerald Cut Diamond',
       'CERTIFICATE NUMBER': 'IGI-LG5882910',
       'DESCRIPTION': 'Lab Grown CVD Certified Zero Fluorescence',
-      'BRANCH': 'New York Showroom',
+      'BRANCH': 'S1',
       'CARAT': 5.05,
       'CLARITY': 'VVS2',
       'SHAPE': 'Emerald Cut',
@@ -163,7 +163,7 @@ export function downloadExcelDiamondTemplate() {
       'ITEM': 'Oval Diamond Pendant',
       'CERTIFICATE NUMBER': 'GIA-22190844',
       'DESCRIPTION': 'Internally Flawless Rare Natural Oval',
-      'BRANCH': 'London Mayfair Vault',
+      'BRANCH': 'S2',
       'CARAT': 1.50,
       'CLARITY': 'IF',
       'SHAPE': 'Oval',
@@ -175,7 +175,7 @@ export function downloadExcelDiamondTemplate() {
       'ITEM': 'Pear Cut Diamond Specimen',
       'CERTIFICATE NUMBER': 'GIA-11983021',
       'DESCRIPTION': 'Flawless High Fire Collector Diamond',
-      'BRANCH': 'Dubai Hub',
+      'BRANCH': 'S3',
       'CARAT': 4.12,
       'CLARITY': 'FL',
       'SHAPE': 'Pear',

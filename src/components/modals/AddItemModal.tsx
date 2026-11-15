@@ -22,14 +22,14 @@ export function AddItemModal({ isOpen, onClose, defaultType = 'gold' }: AddItemM
   const [goldDesc, setGoldDesc] = useState('999.9 Fine Gold Bar Standard Assay');
   const [goldBrand, setGoldBrand] = useState('PAMP Suisse');
   const [goldWeight, setGoldWeight] = useState('12.400');
-  const [goldBranch, setGoldBranch] = useState('London Mayfair Vault');
+  const [goldBranch, setGoldBranch] = useState('HO');
 
   // 10 Diamond Fields
   const [diaTagNo, setDiaTagNo] = useState(`DIA-${Math.floor(1000 + Math.random() * 9000)}`);
   const [diaItem, setDiaItem] = useState('Diamond Solitaire Ring');
   const [diaCert, setDiaCert] = useState(`GIA-${Math.floor(10000000 + Math.random() * 90000000)}`);
   const [diaDesc, setDiaDesc] = useState('Natural Round Brilliant Triple Ex Cut');
-  const [diaBranch, setDiaBranch] = useState('Geneva Vault A');
+  const [diaBranch, setDiaBranch] = useState('HO');
   const [diaCarat, setDiaCarat] = useState('3.20');
   const [diaClarity, setDiaClarity] = useState('VVS1');
   const [diaShape, setDiaShape] = useState('Round Brilliant');

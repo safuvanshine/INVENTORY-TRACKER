@@ -28,7 +28,7 @@ import {
   UserCheck
 } from 'lucide-react';
 
-const STANDARD_BRANCH_CODES = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8'];
+const STANDARD_BRANCH_CODES = ['HO', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10', 'S11', 'S12', 'S13'];
 
 interface VerifiedRecord {
   verifiedAt: string;
@@ -39,6 +39,7 @@ interface VerifiedRecord {
 const extractBranchCode = (val: string = ''): string => {
   if (!val) return '';
   const clean = val.trim().toUpperCase();
+  if (clean === 'HO') return 'HO';
   const match = clean.match(/\b(S\d+)\b/);
   if (match) return match[1];
   return clean.replace(/^BRANCH\s*\((.*)\)$/i, '$1').replace(/^BRANCH\s*/i, '').trim();
@@ -107,8 +108,8 @@ export default function BranchesPage() {
   const { goldItems, diamondItems, goldSpotPrice, showToast, addAuditLog } = useInventory();
 
   // Selection states
-  const [selectedBranchKey, setSelectedBranchKey] = useState<string>('S1');
-  const [tempBranchKey, setTempBranchKey] = useState<string>('S1');
+  const [selectedBranchKey, setSelectedBranchKey] = useState<string>('HO');
+  const [tempBranchKey, setTempBranchKey] = useState<string>('HO');
   const [activeCategory, setActiveCategory] = useState<'gold' | 'diamonds'>('gold');
 
   // Auditor / Verifier Name state
@@ -135,7 +136,7 @@ export default function BranchesPage() {
 
   // Applied verification criteria
   const [appliedCriteria, setAppliedCriteria] = useState<{ branch: string; category: 'gold' | 'diamonds' }>({
-    branch: 'S1',
+    branch: 'HO',
     category: 'gold'
   });
   const [isWorkspaceActive, setIsWorkspaceActive] = useState<boolean>(true);
@@ -163,7 +164,7 @@ export default function BranchesPage() {
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [goldItems, diamondItems]);
 
-  // Distinct custom branches from data that are not standard S1-S8 codes
+  // Distinct custom branches from data that are not standard HO/S1-S13 codes
   const customBranches = useMemo(() => {
     const stdCodes = new Set(STANDARD_BRANCH_CODES);
     return dataBranches.filter(

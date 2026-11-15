@@ -74,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             initials: 'SF',
             email: 'safuwan@shinegold.luxury',
             role: 'Master Admin',
-            branch: 'Dubai DIFC',
+            branch: 'HO',
             activeStatus: 'Active',
             lastActive: 'Now'
           };
@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             initials: 'SF',
             email: 'safuwan@shinegold.luxury',
             role: 'Master Admin',
-            branch: 'Dubai DIFC',
+            branch: 'HO',
             activeStatus: 'Active',
             lastActive: 'Now'
           };

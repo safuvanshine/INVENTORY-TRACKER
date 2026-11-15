@@ -42,7 +42,7 @@ const NAV_ITEMS: NavItem[] = [
     name: 'Branch Status',
     href: '/branches',
     icon: MapPin,
-    badge: '8 Vaults'
+    badge: '14 Branches'
   },
   {
     name: 'Admin Section',
@@ -186,7 +186,7 @@ export function Sidebar() {
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               <p className="text-xs font-semibold text-slate-900 truncate">Secured Level 4</p>
             </div>
-            <p className="text-[11px] text-slate-500 font-mono">13 Multi-Vaults Sync</p>
+            <p className="text-[11px] text-slate-500 font-mono">14 Branches Sync</p>
           </div>
         </div>
       </div>
