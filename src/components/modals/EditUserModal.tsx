@@ -85,52 +85,32 @@ export function EditUserModal({ isOpen, onClose, user }: EditUserModalProps) {
 
           <div>
             <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 font-mono mb-1">
-              Enterprise Email *
+              Assigned Branch *
             </label>
-            <input
-              type="email"
-              required
-              placeholder="name@shinegold.luxury"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-900"
-            />
+            <select
+              value={branch}
+              onChange={e => setBranch(e.target.value)}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-900 focus:bg-white"
+            >
+              {branches.map(b => (
+                <option key={b.id} value={b.name}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 font-mono mb-1">
-                Security Role
-              </label>
-              <select
-                value={role}
-                onChange={e => setRole(e.target.value as any)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-900 focus:bg-white"
-              >
-                <option value="Vault Manager">Vault Manager</option>
-                <option value="Compliance Officer">Compliance Officer</option>
-                <option value="Auditor">Auditor</option>
-                <option value="Operator">Operator</option>
-                <option value="Master Admin">Master Admin</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 font-mono mb-1">
-                Assigned Branch
-              </label>
-              <select
-                value={branch}
-                onChange={e => setBranch(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-900 focus:bg-white"
-              >
-                {branches.map(b => (
-                  <option key={b.id} value={b.name}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 font-mono mb-1">
+              Reset Password / Security PIN
+            </label>
+            <input
+              type="text"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="Leave blank to keep current password"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-900 focus:bg-white font-mono"
+            />
           </div>
 
           <div>
@@ -162,19 +142,6 @@ export function EditUserModal({ isOpen, onClose, user }: EditUserModalProps) {
                 </button>
               ))}
             </div>
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 font-mono mb-1">
-              Reset Password / Security PIN
-            </label>
-            <input
-              type="text"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="Leave blank to keep current password"
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-900 focus:bg-white font-mono"
-            />
           </div>
 
           <div className="pt-3 border-t border-slate-200 flex justify-end gap-2">
