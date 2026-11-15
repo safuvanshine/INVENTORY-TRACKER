@@ -784,8 +784,17 @@ export default function AdminPage() {
                               title={`Status: ${user.activeStatus}`}
                             />
                           </div>
-                          <p className="text-[10px] text-slate-500 font-mono truncate">
-                            {user.role} • {user.branch}
+                          <p className="text-[10px] text-slate-500 font-mono truncate flex items-center gap-1.5 mt-0.5">
+                            <span
+                              className={`px-1.5 py-0.2 rounded font-bold uppercase ${
+                                user.role === 'Master Admin'
+                                  ? 'bg-[#0f172a] text-[#fed65b]'
+                                  : 'bg-slate-100 text-slate-700'
+                              }`}
+                            >
+                              {user.role === 'Master Admin' ? 'Admin' : 'User'}
+                            </span>
+                            <span>• {user.branch}</span>
                           </p>
                         </div>
                       </div>

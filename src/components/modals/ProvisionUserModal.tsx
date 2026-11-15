@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useInventory } from '@/context/InventoryContext';
-import { X, UserPlus, Shield } from 'lucide-react';
+import { X, UserPlus, Shield, User } from 'lucide-react';
 import { UserAccount } from '@/lib/types';
 
 interface ProvisionUserModalProps {
@@ -15,6 +15,7 @@ export function ProvisionUserModal({ isOpen, onClose }: ProvisionUserModalProps)
   const [name, setName] = useState('');
   const [password, setPassword] = useState('staff123');
   const [branch, setBranch] = useState(branches[0]?.name || 'HO');
+  const [accountType, setAccountType] = useState<'user' | 'admin'>('user');
 
   if (!isOpen) return null;
 
@@ -29,13 +30,14 @@ export function ProvisionUserModal({ isOpen, onClose }: ProvisionUserModalProps)
       name: cleanName,
       email: generatedEmail,
       password: password.trim() || 'staff123',
-      role: 'Vault Manager',
+      role: accountType === 'admin' ? 'Master Admin' : 'Vault Manager',
       branch: branch || branches[0]?.name || 'HO',
       activeStatus: 'Active'
     });
 
     setName('');
     setPassword('staff123');
+    setAccountType('user');
     onClose();
   };
 
@@ -71,6 +73,43 @@ export function ProvisionUserModal({ isOpen, onClose }: ProvisionUserModalProps)
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0f172a]"
               autoFocus
             />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 font-mono mb-1.5">
+              Account Access Type *
+            </label>
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => setAccountType('user')}
+                className={`py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer ${
+                  accountType === 'user'
+                    ? 'border-[#0f172a] bg-[#0f172a] text-white shadow-sm'
+                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <User className="w-4 h-4 text-emerald-400" />
+                User (Staff)
+              </button>
+              <button
+                type="button"
+                onClick={() => setAccountType('admin')}
+                className={`py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition-all cursor-pointer ${
+                  accountType === 'admin'
+                    ? 'border-[#0f172a] bg-[#0f172a] text-[#fed65b] shadow-sm'
+                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <Shield className="w-4 h-4 text-[#d4af37]" />
+                Admin (Full Control)
+              </button>
+            </div>
+            <p className="text-[10px] text-slate-400 font-mono mt-1.5">
+              {accountType === 'admin'
+                ? 'Admin can upload Excel, delete data & manage users.'
+                : 'User can view stock, scan/verify branch items & use AI.'}
+            </p>
           </div>
 
           <div>
