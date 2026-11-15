@@ -49,6 +49,10 @@ interface InventoryContextType {
   clearAllDiamonds: () => void;
   bulkAddDiamonds: (items: Omit<DiamondItem, 'id' | 'lastUpdated'>[], options?: { mode?: 'upsert' | 'replace' | 'append' }) => void;
 
+  // Hold & Release System
+  holdItem: (category: 'gold' | 'diamond', id: string, branch: string, days: 1 | 2 | 3, heldBy: string) => void;
+  releaseHold: (category: 'gold' | 'diamond', id: string) => void;
+
   // Reset & Restore Data
   resetDefaultData: () => void;
 
@@ -719,6 +723,110 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     showToast('User Removed', `${target?.name || 'Account'} has been deleted`, 'info');
   };
 
+  const holdItem = (category: 'gold' | 'diamond', id: string, branch: string, days: 1 | 2 | 3, heldBy: string) => {
+    const now = new Date();
+    const expires = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+    const holdInfo = {
+      branch,
+      days,
+      heldBy,
+      heldAt: now.toISOString(),
+      expiresAt: expires.toISOString()
+    };
+
+    if (category === 'gold') {
+      const target = goldItems.find(i => i.id === id);
+      setGoldItems(prev =>
+        prev.map(i => (i.id === id ? { ...i, status: 'Reserved', holdInfo, lastUpdated: 'Just now' } : i))
+      );
+      if (target) {
+        const newAlert: SystemAlert = {
+          id: `alt-hold-${Date.now()}`,
+          title: `Gold Held: ${target.tagNo} (${branch})`,
+          description: `Tag ${target.tagNo} (${target.item}) held at Branch ${branch} for ${days} ${days === 1 ? 'Day' : 'Days'} by ${heldBy}.`,
+          category: 'Gold',
+          priority: 'Action Req',
+          timestamp: 'Just now',
+          read: false,
+          actionLabel: 'View in Admin'
+        };
+        setAlerts(prev => [newAlert, ...prev]);
+        addAuditLog({
+          user: heldBy,
+          action: 'Item Put On Hold',
+          itemTag: target.tagNo,
+          category: 'Gold',
+          branch,
+          details: `Tag ${target.tagNo} held in ${branch} for ${days} ${days === 1 ? 'Day' : 'Days'}`
+        });
+        showToast('Item Held', `Tag ${target.tagNo} held at ${branch} for ${days} ${days === 1 ? 'Day' : 'Days'}`);
+      }
+    } else {
+      const target = diamondItems.find(i => i.id === id);
+      setDiamondItems(prev =>
+        prev.map(i => (i.id === id ? { ...i, status: 'Reserved', holdInfo, lastUpdated: 'Just now' } : i))
+      );
+      if (target) {
+        const newAlert: SystemAlert = {
+          id: `alt-hold-${Date.now()}`,
+          title: `Diamond Held: ${target.tagNo} (${branch})`,
+          description: `Tag ${target.tagNo} (${target.item}) held at Branch ${branch} for ${days} ${days === 1 ? 'Day' : 'Days'} by ${heldBy}.`,
+          category: 'Diamond',
+          priority: 'Action Req',
+          timestamp: 'Just now',
+          read: false,
+          actionLabel: 'View in Admin'
+        };
+        setAlerts(prev => [newAlert, ...prev]);
+        addAuditLog({
+          user: heldBy,
+          action: 'Item Put On Hold',
+          itemTag: target.tagNo,
+          category: 'Diamond',
+          branch,
+          details: `Tag ${target.tagNo} held in ${branch} for ${days} ${days === 1 ? 'Day' : 'Days'}`
+        });
+        showToast('Item Held', `Tag ${target.tagNo} held at ${branch} for ${days} ${days === 1 ? 'Day' : 'Days'}`);
+      }
+    }
+  };
+
+  const releaseHold = (category: 'gold' | 'diamond', id: string) => {
+    if (category === 'gold') {
+      const target = goldItems.find(i => i.id === id);
+      setGoldItems(prev =>
+        prev.map(i => (i.id === id ? { ...i, status: 'In Vault', holdInfo: null, lastUpdated: 'Just now' } : i))
+      );
+      if (target) {
+        addAuditLog({
+          user: 'Admin',
+          action: 'Hold Released',
+          itemTag: target.tagNo,
+          category: 'Gold',
+          branch: target.branch,
+          details: `Released hold on Tag ${target.tagNo} and restored to active stock`
+        });
+        showToast('Hold Released', `Tag ${target.tagNo} returned to active stock.`);
+      }
+    } else {
+      const target = diamondItems.find(i => i.id === id);
+      setDiamondItems(prev =>
+        prev.map(i => (i.id === id ? { ...i, status: 'In Vault', holdInfo: null, lastUpdated: 'Just now' } : i))
+      );
+      if (target) {
+        addAuditLog({
+          user: 'Admin',
+          action: 'Hold Released',
+          itemTag: target.tagNo,
+          category: 'Diamond',
+          branch: target.branch,
+          details: `Released hold on Tag ${target.tagNo} and restored to active stock`
+        });
+        showToast('Hold Released', `Tag ${target.tagNo} returned to active stock.`);
+      }
+    }
+  };
+
   // Stats calculation
   const totalGoldWeightKg = goldItems.reduce((sum, item) => sum + (item.weight || 0), 0);
   const totalGoldValueUsd = goldItems.reduce((sum, item) => sum + (item.estValueUsd || (item.weight || 0) * 1000 * goldSpotPrice), 0);
@@ -743,6 +851,8 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         bulkDeleteDiamonds,
         clearAllDiamonds,
         bulkAddDiamonds,
+        holdItem,
+        releaseHold,
         resetDefaultData,
         branches,
         selectedBranch,

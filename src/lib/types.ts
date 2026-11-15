@@ -1,6 +1,14 @@
 export type GoldPurity = '24K' | '22K' | '18K' | '14K';
 export type GoldStatus = 'In Vault' | 'In Transit' | 'Reserved' | 'Processing';
 
+export interface ItemHoldInfo {
+  branch: string;
+  days: 1 | 2 | 3;
+  heldBy: string;
+  heldAt: string;
+  expiresAt: string;
+}
+
 export interface GoldItem {
   id: string;
   tagNo: string;           // 1. TAG NUMBER
@@ -15,6 +23,7 @@ export interface GoldItem {
   status?: GoldStatus;
   estValueUsd?: number;
   lastUpdated: string;
+  holdInfo?: ItemHoldInfo | null;
 }
 
 export type DiamondType = 'Natural' | 'Lab Grown';
@@ -39,6 +48,7 @@ export interface DiamondItem {
   stoneType?: DiamondType;
   status?: DiamondStatus;
   lastUpdated: string;
+  holdInfo?: ItemHoldInfo | null;
 }
 
 export interface Branch {

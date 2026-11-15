@@ -18,9 +18,11 @@ import {
   Truck,
   Filter,
   X,
-  UploadCloud
+  UploadCloud,
+  Lock
 } from 'lucide-react';
 import { BulkUploadModal } from '@/components/modals/BulkUploadModal';
+import { HoldItemModal } from '@/components/modals/HoldItemModal';
 
 export default function GoldInventoryPage() {
   const {
@@ -34,6 +36,13 @@ export default function GoldInventoryPage() {
 
   // Modals
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState<boolean>(false);
+  const [holdingItem, setHoldingItem] = useState<{
+    id: string;
+    tagNo: string;
+    item: string;
+    branch: string;
+    category: 'gold' | 'diamond';
+  } | null>(null);
 
   // Local Filters
   const [selectedBrand, setSelectedBrand] = useState<string>('ALL');
@@ -183,28 +192,28 @@ export default function GoldInventoryPage() {
           />
 
           <MetricCard
-            title="Active Vaults"
-            value="8"
-            unit="/ 13 Branches"
+            title="Active Branches"
+            value="14"
+            unit="HO & S1–S13"
             icon={<Building2 className="w-5 h-5" />}
             accentColor="emerald"
             extraContent={
               <div className="flex items-center justify-between">
                 <div className="flex -space-x-1.5">
                   <div className="w-6 h-6 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-[9px] font-bold text-slate-800 font-mono shadow-sm">
-                    LDN
+                    HO
                   </div>
                   <div className="w-6 h-6 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-[9px] font-bold text-slate-800 font-mono shadow-sm">
-                    GVA
+                    S1
                   </div>
                   <div className="w-6 h-6 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-[9px] font-bold text-slate-800 font-mono shadow-sm">
-                    NY
+                    S2
                   </div>
                   <div className="w-6 h-6 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-[9px] font-bold text-slate-800 font-mono shadow-sm">
-                    DXB
+                    S3
                   </div>
                 </div>
-                <span className="text-[11px] text-slate-500 font-mono font-medium">+4 more active</span>
+                <span className="text-[11px] text-slate-500 font-mono font-medium">+10 more branches</span>
               </div>
             }
           />
@@ -382,14 +391,15 @@ export default function GoldInventoryPage() {
                   <th className="px-6 py-3.5">4. DESCRIPTION</th>
                   <th className="px-6 py-3.5 w-[130px]">5. BRAND</th>
                   <th className="px-6 py-3.5 text-right w-[120px]">6. WEIGHT</th>
-                  <th className="px-6 py-3.5 w-[180px]">7. BRANCH</th>
+                  <th className="px-6 py-3.5 w-[140px]">7. BRANCH</th>
+                  <th className="px-6 py-3.5 text-right w-[180px]">8. HOLD / STATUS</th>
                 </tr>
               </thead>
 
               <tbody className="divide-y divide-slate-100 text-xs">
                 {paginatedItems.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                    <td colSpan={8} className="px-6 py-12 text-center text-slate-400">
                       No gold assets matched your search filters.
                     </td>
                   </tr>
@@ -397,7 +407,9 @@ export default function GoldInventoryPage() {
                   paginatedItems.map(item => (
                     <tr
                       key={item.id}
-                      className="luxury-row hover:bg-slate-50/70 transition-colors"
+                      className={`luxury-row transition-colors ${
+                        item.holdInfo ? 'bg-amber-50/40 hover:bg-amber-50/70' : 'hover:bg-slate-50/70'
+                      }`}
                     >
                       {/* 1. Tag Number */}
                       <td className="px-6 py-3.5 font-mono font-bold text-[#0f172a]">
@@ -446,6 +458,32 @@ export default function GoldInventoryPage() {
                         <Badge variant="gold" icon={<span className="w-1.5 h-1.5 rounded-full bg-[#d4af37]" />}>
                           {item.branch}
                         </Badge>
+                      </td>
+
+                      {/* 8. Hold Action / Status */}
+                      <td className="px-6 py-3.5 text-right">
+                        {item.holdInfo ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-100 border border-amber-300 text-amber-900 text-[11px] font-mono font-bold">
+                            <Lock className="w-3 h-3 text-amber-700" />
+                            ON HOLD • {item.holdInfo.branch} ({item.holdInfo.days}D)
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() =>
+                              setHoldingItem({
+                                id: item.id,
+                                tagNo: item.tagNo,
+                                item: item.item,
+                                branch: item.branch,
+                                category: 'gold'
+                              })
+                            }
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-[#fed65b] text-[11px] font-mono font-bold shadow-xs transition-all cursor-pointer"
+                          >
+                            <Lock className="w-3 h-3" />
+                            Hold Item
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))
@@ -500,6 +538,13 @@ export default function GoldInventoryPage() {
         isOpen={isBulkUploadOpen}
         onClose={() => setIsBulkUploadOpen(false)}
         targetCategory="gold"
+      />
+
+      {/* Hold Item Modal */}
+      <HoldItemModal
+        isOpen={!!holdingItem}
+        onClose={() => setHoldingItem(null)}
+        item={holdingItem}
       />
     </div>
   );

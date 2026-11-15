@@ -21,9 +21,11 @@ import {
   X,
   Building2,
   Award,
-  UploadCloud
+  UploadCloud,
+  Lock
 } from 'lucide-react';
 import { BulkUploadModal } from '@/components/modals/BulkUploadModal';
+import { HoldItemModal } from '@/components/modals/HoldItemModal';
 
 export default function DiamondsPage() {
   const {
@@ -36,6 +38,13 @@ export default function DiamondsPage() {
 
   // Modals state
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState<boolean>(false);
+  const [holdingItem, setHoldingItem] = useState<{
+    id: string;
+    tagNo: string;
+    item: string;
+    branch: string;
+    category: 'gold' | 'diamond';
+  } | null>(null);
 
   // Filters State
   const [selectedShape, setSelectedShape] = useState<string>('ALL');
@@ -620,13 +629,16 @@ export default function DiamondsPage() {
                   <th className="px-5 py-3.5 text-right w-[130px] bg-slate-100/60 font-bold text-emerald-900">
                     10. TAG PRICE
                   </th>
+                  <th className="px-5 py-3.5 text-right w-[160px]">
+                    11. HOLD / STATUS
+                  </th>
                 </tr>
               </thead>
 
               <tbody className="divide-y divide-slate-100 text-xs">
                 {paginatedItems.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="px-6 py-12 text-center text-slate-400 font-sans">
+                    <td colSpan={11} className="px-6 py-12 text-center text-slate-400 font-sans">
                       No diamond specimens matched your criteria.
                     </td>
                   </tr>
@@ -634,7 +646,9 @@ export default function DiamondsPage() {
                   paginatedItems.map(item => (
                     <tr
                       key={item.id}
-                      className="luxury-row hover:bg-slate-50/80 transition-colors"
+                      className={`luxury-row transition-colors ${
+                        item.holdInfo ? 'bg-amber-50/40 hover:bg-amber-50/70' : 'hover:bg-slate-50/80'
+                      }`}
                     >
                       {/* 1. Tag Number */}
                       <td className="px-4 py-3.5 font-mono font-bold text-[#0f172a]">
@@ -694,6 +708,32 @@ export default function DiamondsPage() {
                           {formatUsd(item.tagPrice)}
                         </span>
                       </td>
+
+                      {/* 11. Hold Action / Status */}
+                      <td className="px-5 py-3.5 text-right">
+                        {item.holdInfo ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-100 border border-amber-300 text-amber-900 text-[11px] font-mono font-bold">
+                            <Lock className="w-3 h-3 text-amber-700" />
+                            ON HOLD • {item.holdInfo.branch} ({item.holdInfo.days}D)
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() =>
+                              setHoldingItem({
+                                id: item.id,
+                                tagNo: item.tagNo,
+                                item: item.item,
+                                branch: item.branch,
+                                category: 'diamond'
+                              })
+                            }
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-[#fed65b] text-[11px] font-mono font-bold shadow-xs transition-all cursor-pointer"
+                          >
+                            <Lock className="w-3 h-3" />
+                            Hold Item
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))
                 )}
@@ -735,6 +775,13 @@ export default function DiamondsPage() {
         isOpen={isBulkUploadOpen}
         onClose={() => setIsBulkUploadOpen(false)}
         targetCategory="diamond"
+      />
+
+      {/* Hold Item Modal */}
+      <HoldItemModal
+        isOpen={!!holdingItem}
+        onClose={() => setHoldingItem(null)}
+        item={holdingItem}
       />
     </div>
   );
