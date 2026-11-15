@@ -11,7 +11,7 @@ interface LoginGateProps {
 
 export function LoginGate({ children }: LoginGateProps) {
   const { isAuthenticated, login, isLoading } = useAuth();
-  const [username, setUsername] = useState('safuwan');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -106,9 +106,8 @@ export function LoginGate({ children }: LoginGateProps) {
             </div>
 
             <div>
-              <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-300 font-bold mb-1.5 flex items-center justify-between">
-                <span>Password</span>
-                <span className="text-[10px] text-slate-400 font-normal lowercase">(default: shine123)</span>
+              <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-300 font-bold mb-1.5">
+                Password
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -150,31 +149,6 @@ export function LoginGate({ children }: LoginGateProps) {
               )}
             </button>
           </form>
-
-          {/* Quick Login Chips for easy testing */}
-          <div className="mt-6 pt-5 border-t border-slate-800">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-slate-400 text-center mb-2.5">
-              Quick Fill Demo Logins
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickFill('safuwan', 'shine123')}
-                className="py-2 px-2.5 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-[11px] text-slate-200 font-semibold transition-all text-left flex items-center gap-1.5"
-              >
-                <span className="w-2 h-2 rounded-full bg-[#fed65b]" />
-                <span className="truncate">Safuwan (Admin)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickFill('Éléonore Dubois', 'staff123')}
-                className="py-2 px-2.5 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-[11px] text-slate-200 font-semibold transition-all text-left flex items-center gap-1.5"
-              >
-                <span className="w-2 h-2 rounded-full bg-blue-400" />
-                <span className="truncate">Staff Account</span>
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Security Footer */}

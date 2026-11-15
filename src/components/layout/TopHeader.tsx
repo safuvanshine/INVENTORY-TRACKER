@@ -180,13 +180,17 @@ export function TopHeader() {
                       <h5 className="text-xs font-bold text-slate-800 mt-1">{alert.title}</h5>
                       <p className="text-[11px] text-slate-600 mt-0.5 leading-snug">{alert.description}</p>
                       <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-200/60">
-                        <Link
-                          href="/admin"
-                          onClick={() => setShowAlertMenu(false)}
-                          className="text-[11px] font-semibold text-[#735c00] hover:underline"
-                        >
-                          {alert.actionLabel || 'Investigate →'}
-                        </Link>
+                        {isAdmin ? (
+                          <Link
+                            href="/admin"
+                            onClick={() => setShowAlertMenu(false)}
+                            className="text-[11px] font-semibold text-[#735c00] hover:underline"
+                          >
+                            {alert.actionLabel || 'Investigate →'}
+                          </Link>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 font-mono">System Notice</span>
+                        )}
                         <button
                           onClick={() => dismissAlert(alert.id)}
                           className="text-[10px] text-slate-400 hover:text-rose-600"
@@ -199,15 +203,17 @@ export function TopHeader() {
                 )}
               </div>
 
-              <div className="mt-3 pt-2 border-t border-slate-100 text-center">
-                <Link
-                  href="/admin"
-                  onClick={() => setShowAlertMenu(false)}
-                  className="text-xs font-bold text-[#0f172a] hover:text-[#735c00] transition-colors"
-                >
-                  View All in Admin Control Center →
-                </Link>
-              </div>
+              {isAdmin && (
+                <div className="mt-3 pt-2 border-t border-slate-100 text-center">
+                  <Link
+                    href="/admin"
+                    onClick={() => setShowAlertMenu(false)}
+                    className="text-xs font-bold text-[#0f172a] hover:text-[#735c00] transition-colors"
+                  >
+                    View All in Admin Control Center →
+                  </Link>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -227,11 +233,11 @@ export function TopHeader() {
                   </span>
                 ) : (
                   <span className="text-[9px] text-slate-600 bg-slate-200 px-1.5 py-0.5 rounded font-mono font-bold uppercase tracking-wider">
-                    Staff
+                    User
                   </span>
                 )}
               </p>
-              <p className="text-[10px] text-slate-500 font-mono">{currentUser.role}</p>
+              <p className="text-[10px] text-slate-500 font-mono">Branch: {currentUser.branch}</p>
             </div>
             <button
               onClick={logout}
@@ -278,13 +284,15 @@ export function TopHeader() {
           >
             Branch Status
           </Link>
-          <Link
-            href="/admin"
-            onClick={() => setShowMobileMenu(false)}
-            className="py-3 border-b text-sm font-semibold text-slate-800"
-          >
-            Admin Section
-          </Link>
+          {isAdmin && (
+            <Link
+              href="/admin"
+              onClick={() => setShowMobileMenu(false)}
+              className="py-3 border-b text-sm font-semibold text-slate-800"
+            >
+              Admin Section
+            </Link>
+          )}
         </div>
       )}
     </header>

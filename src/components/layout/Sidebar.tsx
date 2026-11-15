@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useInventory } from '@/context/InventoryContext';
+import { useAuth } from '@/context/AuthContext';
 
 import Image from 'next/image';
 
@@ -55,6 +56,9 @@ const NAV_ITEMS: NavItem[] = [
 export function Sidebar() {
   const pathname = usePathname();
   const { totalGoldWeightKg, totalDiamondCarats } = useInventory();
+  const { isAdmin } = useAuth();
+
+  const visibleNavItems = NAV_ITEMS.filter(item => item.href !== '/admin' || isAdmin);
 
   return (
     <aside className="hidden md:flex flex-col h-screen w-[240px] fixed left-0 top-0 bg-[#f7f9fb] border-r border-slate-200/80 z-50 select-none">
@@ -79,7 +83,7 @@ export function Sidebar() {
           Core Operations
         </div>
 
-        {NAV_ITEMS.map(item => {
+        {visibleNavItems.map(item => {
           const isActive = pathname === item.href || (pathname === '/' && item.href === '/gold');
           const Icon = item.icon;
 

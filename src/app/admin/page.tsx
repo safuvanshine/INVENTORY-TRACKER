@@ -386,92 +386,28 @@ export default function AdminPage() {
     );
   }
 
-  // Gatekeeper Lock Screen
-  if (!isAuthenticated) {
+  // Gatekeeper Lock Screen for non-admin accounts
+  if (!isAdmin && !isAuthenticated) {
     return (
       <div className="min-h-screen flex flex-col justify-between bg-[#0a0e17] text-slate-100 relative overflow-hidden">
-        {/* Background ambient luxury glow */}
-        <div className="absolute -top-40 -left-40 w-96 h-96 bg-[#fed65b]/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-[#fed65b]/10 rounded-full blur-3xl pointer-events-none" />
-
         <LiveTicker mode="all" />
-
         <div className="flex-1 flex items-center justify-center p-6">
-          <div className="w-full max-w-md bg-[#131b2e]/90 backdrop-blur-xl border border-slate-800 rounded-3xl p-8 shadow-2xl relative">
-            <div className="flex flex-col items-center text-center mb-8">
-              <div className="w-16 h-16 rounded-2xl bg-[#fed65b]/15 border border-[#fed65b]/40 flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(254,214,91,0.2)]">
-                <Lock className="w-8 h-8 text-[#fed65b]" />
-              </div>
-              <h2 className="text-2xl font-bold font-headline tracking-tight text-white mb-2">
-                Admin Control Center
-              </h2>
-              <p className="text-xs text-slate-400 font-mono leading-relaxed">
-                Restricted governance access. Please enter the master authorization key to manage inventory manifests.
-              </p>
+          <div className="w-full max-w-md bg-[#131b2e]/90 backdrop-blur-xl border border-slate-800 rounded-3xl p-8 shadow-2xl text-center">
+            <div className="w-16 h-16 rounded-2xl bg-rose-500/15 border border-rose-500/40 flex items-center justify-center mx-auto mb-4">
+              <Lock className="w-8 h-8 text-rose-400" />
             </div>
-
-            <form onSubmit={handleVerifyPassword} className="space-y-4">
-              <div>
-                <label className="block text-[11px] font-mono uppercase tracking-wider text-slate-300 font-semibold mb-2">
-                  Master Admin Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={passwordInput}
-                    onChange={(e) => {
-                      setPasswordInput(e.target.value);
-                      if (authError) setAuthError('');
-                    }}
-                    placeholder="Enter admin password..."
-                    autoFocus
-                    className="w-full px-4 py-3 bg-[#0a0e17] border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#fed65b] focus:ring-1 focus:ring-[#fed65b] font-mono tracking-wider transition-all pr-12"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors p-1"
-                    title={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {authError && (
-                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-start gap-2.5 text-rose-400 text-xs animate-shake">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>{authError}</span>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={isVerifying}
-                className="w-full py-3 px-4 bg-gradient-to-r from-[#fed65b] to-[#d4af37] text-slate-950 font-bold text-sm rounded-xl shadow-lg hover:shadow-[#fed65b]/20 hover:brightness-105 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {isVerifying ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Authorizing Vault...</span>
-                  </>
-                ) : (
-                  <>
-                    <Unlock className="w-4 h-4" />
-                    <span>Unlock Admin Portal</span>
-                  </>
-                )}
-              </button>
-            </form>
-
-            <div className="mt-6 pt-5 border-t border-slate-800 text-center">
-              <p className="text-[11px] text-slate-400 font-mono">
-                Default Master Password: <span className="text-[#fed65b] font-bold bg-[#fed65b]/10 px-2 py-0.5 rounded border border-[#fed65b]/20">shine123</span>
-              </p>
-              <p className="text-[10px] text-slate-500 mt-1">
-                (You can reset or change this password at any time inside the admin center)
-              </p>
-            </div>
+            <h2 className="text-xl font-bold font-headline tracking-tight text-white mb-2">
+              Admin Access Only
+            </h2>
+            <p className="text-xs text-slate-400 font-mono leading-relaxed mb-6">
+              This section is restricted to Administrator accounts only.
+            </p>
+            <a
+              href="/gold"
+              className="inline-flex items-center justify-center py-2.5 px-6 bg-[#fed65b] text-slate-950 font-bold text-xs rounded-xl shadow-md hover:brightness-105 transition-all"
+            >
+              Return to Inventory
+            </a>
           </div>
         </div>
       </div>
