@@ -220,6 +220,9 @@ export default function AdminPage() {
     }
   };
 
+  // Active Admin Top Tab ('inventory' | 'holds' | 'users' | 'alerts')
+  const [adminSectionTab, setAdminSectionTab] = useState<'inventory' | 'holds' | 'users' | 'alerts'>('inventory');
+
   // Active Category Box Selector ('gold' | 'diamond')
   const [activeTab, setActiveTab] = useState<'gold' | 'diamond'>('gold');
 
@@ -472,80 +475,198 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* System Alerts Section */}
-        {alerts.length > 0 && (
-          <section>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold text-slate-900 font-headline flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4 text-[#d4af37]" />
-                Live Operational Alerts ({alerts.length})
-              </h3>
-            </div>
+        {/* ===== 4 ORGANIZED ADMIN NAVIGATION TABS ===== */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-1.5 shadow-xs grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+          <button
+            type="button"
+            onClick={() => setAdminSectionTab('inventory')}
+            className={`py-3 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              adminSectionTab === 'inventory'
+                ? 'bg-[#0f172a] text-[#fed65b] shadow-sm'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            <Layers className="w-4 h-4" />
+            <span>Inventory & Upload</span>
+            <span
+              className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
+                adminSectionTab === 'inventory' ? 'bg-white/15 text-white' : 'bg-slate-200 text-slate-700'
+              }`}
+            >
+              {goldItems.length + diamondItems.length}
+            </span>
+          </button>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-              {alerts.map(alert => (
-                <div
-                  key={alert.id}
-                  className={`bg-white border rounded-xl p-4 shadow-sm flex flex-col justify-between transition-all ${
-                    alert.priority === 'Critical'
-                      ? 'border-rose-300 ring-1 ring-rose-100'
-                      : 'border-slate-200'
-                  }`}
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span
-                        className={`text-[9px] px-2 py-0.5 rounded font-mono font-bold uppercase ${
-                          alert.priority === 'Critical'
-                            ? 'bg-rose-100 text-rose-700'
-                            : alert.priority === 'High Priority'
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-slate-100 text-slate-700'
-                        }`}
-                      >
-                        {alert.priority}
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-mono">{alert.timestamp}</span>
-                    </div>
+          <button
+            type="button"
+            onClick={() => setAdminSectionTab('holds')}
+            className={`py-3 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              adminSectionTab === 'holds'
+                ? 'bg-[#0f172a] text-[#fed65b] shadow-sm'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            <Lock className="w-4 h-4" />
+            <span>Held Items</span>
+            <span
+              className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-extrabold ${
+                goldItems.filter(i => i.holdInfo).length + diamondItems.filter(i => i.holdInfo).length > 0
+                  ? 'bg-amber-400 text-slate-950'
+                  : adminSectionTab === 'holds'
+                  ? 'bg-white/15 text-white'
+                  : 'bg-slate-200 text-slate-700'
+              }`}
+            >
+              {goldItems.filter(i => i.holdInfo).length + diamondItems.filter(i => i.holdInfo).length}
+            </span>
+          </button>
 
-                    <h4 className="font-headline font-bold text-xs text-slate-900 mb-1">
-                      {alert.title}
-                    </h4>
-                    <p className="text-[11px] text-slate-600 line-clamp-2 leading-relaxed">
-                      {alert.description}
-                    </p>
-                  </div>
+          <button
+            type="button"
+            onClick={() => setAdminSectionTab('users')}
+            className={`py-3 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              adminSectionTab === 'users'
+                ? 'bg-[#0f172a] text-[#fed65b] shadow-sm'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>User Management</span>
+            <span
+              className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
+                adminSectionTab === 'users' ? 'bg-white/15 text-white' : 'bg-slate-200 text-slate-700'
+              }`}
+            >
+              {users.length}
+            </span>
+          </button>
 
-                  <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
-                    <button
-                      onClick={() => {
-                        if (alert.title.includes('Spot') || alert.title.includes('Volatility')) {
-                          setIsEditingSpot(true);
-                        } else {
-                          showToast('Audit Triggered', `Processing: ${alert.title}`);
-                        }
-                      }}
-                      className="text-[11px] font-bold text-[#735c00] hover:underline"
-                    >
-                      {alert.actionLabel || 'Investigate →'}
-                    </button>
-                    <button
-                      onClick={() => dismissAlert(alert.id)}
-                      className="text-[10px] text-slate-400 hover:text-slate-700"
-                    >
-                      Resolve
-                    </button>
-                  </div>
+          <button
+            type="button"
+            onClick={() => setAdminSectionTab('alerts')}
+            className={`py-3 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              adminSectionTab === 'alerts'
+                ? 'bg-[#0f172a] text-[#fed65b] shadow-sm'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            <ShieldAlert className="w-4 h-4" />
+            <span>Alerts & Logs</span>
+            <span
+              className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
+                adminSectionTab === 'alerts' ? 'bg-white/15 text-white' : 'bg-slate-200 text-slate-700'
+              }`}
+            >
+              {alerts.length}
+            </span>
+          </button>
+        </div>
+
+        {/* ===== TAB 4: ALERTS & LOGS ===== */}
+        {adminSectionTab === 'alerts' && (
+          <div className="space-y-6">
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-slate-900 font-headline flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4 text-[#d4af37]" />
+                  Live Operational Alerts ({alerts.length})
+                </h3>
+              </div>
+
+              {alerts.length === 0 ? (
+                <div className="bg-white border border-slate-200 rounded-xl p-8 text-center text-xs text-slate-400 font-mono">
+                  No active alerts at this time.
                 </div>
-              ))}
-            </div>
-          </section>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {alerts.map(alert => (
+                    <div
+                      key={alert.id}
+                      className={`bg-white border rounded-xl p-4 shadow-sm flex flex-col justify-between transition-all ${
+                        alert.priority === 'Critical'
+                          ? 'border-rose-300 ring-1 ring-rose-100'
+                          : 'border-slate-200'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span
+                            className={`text-[9px] px-2 py-0.5 rounded font-mono font-bold uppercase ${
+                              alert.priority === 'Critical'
+                                ? 'bg-rose-100 text-rose-700'
+                                : alert.priority === 'High Priority'
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}
+                          >
+                            {alert.priority}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-mono">{alert.timestamp}</span>
+                        </div>
+
+                        <h4 className="font-headline font-bold text-xs text-slate-900 mb-1">
+                          {alert.title}
+                        </h4>
+                        <p className="text-[11px] text-slate-600 line-clamp-2 leading-relaxed">
+                          {alert.description}
+                        </p>
+                      </div>
+
+                      <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
+                        <button
+                          onClick={() => {
+                            if (alert.title.includes('Held')) {
+                              setAdminSectionTab('holds');
+                            } else {
+                              showToast('Audit Triggered', `Processing: ${alert.title}`);
+                            }
+                          }}
+                          className="text-[11px] font-bold text-[#735c00] hover:underline"
+                        >
+                          {alert.actionLabel || 'Investigate →'}
+                        </button>
+                        <button
+                          onClick={() => dismissAlert(alert.id)}
+                          className="text-[10px] text-slate-400 hover:text-slate-700"
+                        >
+                          Resolve
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* Audit Logs Table */}
+            <section className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+                <h3 className="text-sm font-bold text-slate-900 font-headline">Recent Activity & Audit Trail</h3>
+                <span className="text-xs font-mono text-slate-400">{auditLogs.length} entries</span>
+              </div>
+              <div className="divide-y divide-slate-100 max-h-96 overflow-y-auto custom-scrollbar">
+                {auditLogs.map(log => (
+                  <div key={log.id} className="px-5 py-3 flex items-center justify-between text-xs">
+                    <div>
+                      <span className="font-bold text-slate-900">{log.action}</span>
+                      <span className="text-slate-400 mx-1.5">•</span>
+                      <span className="font-mono text-slate-700">{log.itemTag}</span>
+                      <p className="text-[11px] text-slate-500 mt-0.5">{log.details}</p>
+                    </div>
+                    <div className="text-right font-mono text-[10px] text-slate-400 shrink-0 ml-4">
+                      <div className="font-bold text-slate-700">{log.user} ({log.branch})</div>
+                      <div>{log.timestamp}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
         )}
 
-        {/* Bulk Upload + User Management Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Bulk Operations (2 Columns) */}
-          <section className="lg:col-span-2 flex flex-col gap-4">
+        {/* ===== TAB 1 (TOP): EXCEL IMPORT PIPELINE ===== */}
+        {adminSectionTab === 'inventory' && (
+          <section className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold text-slate-900 font-headline">
                 Excel Import Pipeline
@@ -674,16 +795,27 @@ export default function AdminPage() {
               )}
             </div>
           </section>
+        )}
 
-          {/* User Management (1 Column) */}
+        {/* ===== TAB 3: USER MANAGEMENT ===== */}
+        {adminSectionTab === 'users' && (
           <section className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-slate-900 font-headline">
-                User Management
-              </h3>
-              <span className="text-xs font-mono text-slate-500">
-                {users.length} Accounts
-              </span>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 font-headline">
+                  User & Branch Access Management
+                </h3>
+                <p className="text-xs text-slate-500 font-mono mt-0.5">
+                  Add, edit or remove Branch User and Admin accounts ({users.length} active accounts)
+                </p>
+              </div>
+              <button
+                onClick={() => setIsUserModalOpen(true)}
+                className="px-4 py-2.5 rounded-xl bg-[#0f172a] text-[#fed65b] hover:bg-slate-800 text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              >
+                <UserPlus className="w-4 h-4" />
+                Add New User
+              </button>
             </div>
 
             <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col flex-1">
@@ -692,24 +824,24 @@ export default function AdminPage() {
                 <span className="text-slate-400">Clearance Verified</span>
               </div>
 
-              <div className="divide-y divide-slate-100 flex-1 p-2 max-h-[260px] overflow-y-auto custom-scrollbar">
+              <div className="divide-y divide-slate-100 flex-1 p-3">
                 {users.length === 0 ? (
-                  <div className="p-6 text-center text-xs text-slate-400 font-mono">
-                    No active user accounts found. Click below to provision a user.
+                  <div className="p-8 text-center text-xs text-slate-400 font-mono">
+                    No active user accounts found. Click &ldquo;Add New User&rdquo; above to create one.
                   </div>
                 ) : (
                   users.map(user => (
                     <div
                       key={user.id}
-                      className="p-2.5 flex items-center justify-between hover:bg-slate-50 rounded-lg transition-colors group"
+                      className="p-3 flex items-center justify-between hover:bg-slate-50 rounded-lg transition-colors group"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-8 h-8 rounded-full bg-[#0f172a] text-[#fed65b] flex items-center justify-center text-[10px] font-bold font-mono shrink-0 shadow-xs">
+                        <div className="w-9 h-9 rounded-full bg-[#0f172a] text-[#fed65b] flex items-center justify-center text-xs font-bold font-mono shrink-0 shadow-xs">
                           {user.initials}
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className="text-xs font-bold text-slate-900 truncate">{user.name}</p>
+                            <p className="text-sm font-bold text-slate-900 truncate">{user.name}</p>
                             <span
                               className={`w-2 h-2 rounded-full shrink-0 ${
                                 user.activeStatus === 'Active'
@@ -721,7 +853,7 @@ export default function AdminPage() {
                               title={`Status: ${user.activeStatus}`}
                             />
                           </div>
-                          <p className="text-[10px] text-slate-500 font-mono truncate flex items-center gap-1.5 mt-0.5">
+                          <p className="text-[11px] text-slate-500 font-mono truncate flex items-center gap-1.5 mt-0.5">
                             <span
                               className={`px-1.5 py-0.2 rounded font-bold uppercase ${
                                 user.role === 'Master Admin'
@@ -731,19 +863,20 @@ export default function AdminPage() {
                             >
                               {user.role === 'Master Admin' ? 'Admin' : 'User'}
                             </span>
-                            <span>• {user.branch}</span>
+                            <span>• Branch: {user.branch}</span>
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-1 shrink-0 ml-2">
+                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
                         {/* Edit Name / Role / Details Button */}
                         <button
                           onClick={() => setEditingUser(user)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-[#0f172a] hover:bg-slate-100 transition-colors"
-                          title={`Edit / Change Name for ${user.name}`}
+                          className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-[#0f172a] bg-slate-100 hover:bg-slate-200 flex items-center gap-1 transition-colors"
+                          title={`Edit ${user.name}`}
                         >
                           <Pencil className="w-3.5 h-3.5" />
+                          Edit
                         </button>
 
                         {/* Delete User Button */}
@@ -752,29 +885,20 @@ export default function AdminPage() {
                           className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                           title={`Delete ${user.name}`}
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
                   ))
                 )}
               </div>
-
-              <div className="p-2.5 border-t border-slate-100 bg-slate-50 flex justify-center">
-                <button
-                  onClick={() => setIsUserModalOpen(true)}
-                  className="flex items-center gap-1.5 text-xs font-bold text-[#0f172a] hover:text-[#735c00] transition-colors"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  Provision New User
-                </button>
-              </div>
             </div>
           </section>
-        </div>
+        )}
 
-        {/* ===== CUSTOMER HELD ITEMS TRACKER (ACTIVE & COMPLETED HOLDS) ===== */}
-        <section className="bg-white border-2 border-amber-300/80 rounded-2xl p-6 shadow-sm space-y-4">
+        {/* ===== TAB 2: CUSTOMER HELD ITEMS TRACKER (ACTIVE & COMPLETED HOLDS) ===== */}
+        {adminSectionTab === 'holds' && (
+          <section className="bg-white border-2 border-amber-300/80 rounded-2xl p-6 shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
@@ -894,8 +1018,10 @@ export default function AdminPage() {
             </div>
           )}
         </section>
+        )}
 
-        {/* ===== 2 PROMINENT BOX CARDS: GOLD & DIAMOND SELECTOR ===== */}
+        {/* ===== TAB 1 (BOTTOM): 2 PROMINENT BOX CARDS: GOLD & DIAMOND SELECTOR ===== */}
+        {adminSectionTab === 'inventory' && (
         <section className="space-y-4">
           <div>
             <h2 className="text-lg font-bold text-slate-900 font-headline mb-1">
@@ -1400,6 +1526,7 @@ export default function AdminPage() {
             </div>
           </div>
         </section>
+        )}
       </main>
 
       {/* Confirmation Modal for Delete Actions */}
