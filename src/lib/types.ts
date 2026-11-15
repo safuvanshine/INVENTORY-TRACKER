@@ -107,3 +107,19 @@ export interface TickerMovement {
   description: string;
   timeAgo: string;
 }
+
+export interface BranchVerificationReport {
+  id: string;
+  branch: string;
+  category: 'Gold' | 'Diamond';
+  verifiedBy: string;
+  date: string;
+  timestamp: string;
+  totalItems: number;
+  verifiedCount: number;
+  pendingCount: number;
+  verifiedWeight: number;
+  totalWeight: number;
+  verifiedTags: { tagNo: string; item: string; weight: number }[];
+  pendingTags: { tagNo: string; item: string; weight: number }[];
+}

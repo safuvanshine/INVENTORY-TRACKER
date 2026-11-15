@@ -64,6 +64,8 @@ export default function AdminPage() {
     clearAllGold,
     clearAllDiamonds,
     releaseHold,
+    verificationReports,
+    deleteVerificationReport,
     resetDefaultData
   } = useInventory();
 
@@ -220,8 +222,9 @@ export default function AdminPage() {
     }
   };
 
-  // Active Admin Top Tab ('inventory' | 'holds' | 'users' | 'alerts')
-  const [adminSectionTab, setAdminSectionTab] = useState<'inventory' | 'holds' | 'users' | 'alerts'>('inventory');
+  // Active Admin Top Tab ('inventory' | 'holds' | 'verifications' | 'users' | 'alerts')
+  const [adminSectionTab, setAdminSectionTab] = useState<'inventory' | 'holds' | 'verifications' | 'users' | 'alerts'>('inventory');
+  const [expandedReportId, setExpandedReportId] = useState<string | null>(null);
 
   // Active Category Box Selector ('gold' | 'diamond')
   const [activeTab, setActiveTab] = useState<'gold' | 'diamond'>('gold');
@@ -475,19 +478,19 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* ===== 4 ORGANIZED ADMIN NAVIGATION TABS ===== */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-1.5 shadow-xs grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+        {/* ===== 5 ORGANIZED ADMIN NAVIGATION TABS ===== */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-1.5 shadow-xs grid grid-cols-2 sm:grid-cols-5 gap-1.5">
           <button
             type="button"
             onClick={() => setAdminSectionTab('inventory')}
-            className={`py-3 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            className={`py-3 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
               adminSectionTab === 'inventory'
                 ? 'bg-[#0f172a] text-[#fed65b] shadow-sm'
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
-            <Layers className="w-4 h-4" />
-            <span>Inventory & Upload</span>
+            <Layers className="w-4 h-4 shrink-0" />
+            <span className="truncate">Inventory & Upload</span>
             <span
               className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
                 adminSectionTab === 'inventory' ? 'bg-white/15 text-white' : 'bg-slate-200 text-slate-700'
@@ -500,14 +503,14 @@ export default function AdminPage() {
           <button
             type="button"
             onClick={() => setAdminSectionTab('holds')}
-            className={`py-3 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            className={`py-3 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
               adminSectionTab === 'holds'
                 ? 'bg-[#0f172a] text-[#fed65b] shadow-sm'
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
-            <Lock className="w-4 h-4" />
-            <span>Held Items</span>
+            <Lock className="w-4 h-4 shrink-0" />
+            <span className="truncate">Held Items</span>
             <span
               className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-extrabold ${
                 goldItems.filter(i => i.holdInfo).length + diamondItems.filter(i => i.holdInfo).length > 0
@@ -523,15 +526,39 @@ export default function AdminPage() {
 
           <button
             type="button"
+            onClick={() => setAdminSectionTab('verifications')}
+            className={`py-3 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              adminSectionTab === 'verifications'
+                ? 'bg-[#0f172a] text-[#fed65b] shadow-sm'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span className="truncate">Stock Verifications</span>
+            <span
+              className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-extrabold ${
+                verificationReports.length > 0
+                  ? 'bg-emerald-500 text-white'
+                  : adminSectionTab === 'verifications'
+                  ? 'bg-white/15 text-white'
+                  : 'bg-slate-200 text-slate-700'
+              }`}
+            >
+              {verificationReports.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setAdminSectionTab('users')}
-            className={`py-3 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            className={`py-3 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
               adminSectionTab === 'users'
                 ? 'bg-[#0f172a] text-[#fed65b] shadow-sm'
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
-            <UserPlus className="w-4 h-4" />
-            <span>User Management</span>
+            <UserPlus className="w-4 h-4 shrink-0" />
+            <span className="truncate">User Management</span>
             <span
               className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
                 adminSectionTab === 'users' ? 'bg-white/15 text-white' : 'bg-slate-200 text-slate-700'
@@ -544,14 +571,14 @@ export default function AdminPage() {
           <button
             type="button"
             onClick={() => setAdminSectionTab('alerts')}
-            className={`py-3 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            className={`py-3 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
               adminSectionTab === 'alerts'
                 ? 'bg-[#0f172a] text-[#fed65b] shadow-sm'
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
-            <ShieldAlert className="w-4 h-4" />
-            <span>Alerts & Logs</span>
+            <ShieldAlert className="w-4 h-4 shrink-0" />
+            <span className="truncate">Alerts & Logs</span>
             <span
               className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
                 adminSectionTab === 'alerts' ? 'bg-white/15 text-white' : 'bg-slate-200 text-slate-700'
@@ -561,6 +588,167 @@ export default function AdminPage() {
             </span>
           </button>
         </div>
+
+        {/* ===== TAB: BRANCH STOCK VERIFICATION REPORTS (SAVED BY DATE) ===== */}
+        {adminSectionTab === 'verifications' && (
+          <section className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-bold text-slate-900 font-headline">
+                      Saved Branch Stock Verifications
+                    </h2>
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-xs font-mono font-bold border border-emerald-300">
+                      {verificationReports.length} Reports
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 font-mono mt-0.5">
+                    Date-stamped Gold & Diamond stock verification reports submitted from Branch Status
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {verificationReports.length === 0 ? (
+              <div className="py-12 text-center text-xs text-slate-400 font-mono bg-slate-50/60 rounded-xl border border-dashed border-slate-200">
+                No branch stock verifications saved yet. When a branch verifies Gold or Diamond stock in Branch Status and clicks &ldquo;Save Verification&rdquo;, it will appear here with the date.
+              </div>
+            ) : (
+              <div className="space-y-3.5">
+                {verificationReports.map(report => {
+                  const isExpanded = expandedReportId === report.id;
+                  const isComplete = report.pendingCount === 0 && report.totalItems > 0;
+                  const unit = report.category === 'Gold' ? 'kg' : 'ct';
+
+                  return (
+                    <div
+                      key={report.id}
+                      className={`rounded-xl border transition-all overflow-hidden ${
+                        isComplete
+                          ? 'bg-emerald-50/30 border-emerald-200'
+                          : 'bg-amber-50/30 border-amber-200'
+                      }`}
+                    >
+                      <div className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="px-2.5 py-0.5 rounded-md bg-[#0f172a] text-[#fed65b] text-xs font-mono font-extrabold">
+                              Branch: {report.branch}
+                            </span>
+                            <span
+                              className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold uppercase ${
+                                report.category === 'Gold'
+                                  ? 'bg-[#fed65b]/30 text-[#735c00]'
+                                  : 'bg-emerald-100 text-emerald-800'
+                              }`}
+                            >
+                              {report.category} Stock
+                            </span>
+                            <span className="px-2.5 py-0.5 rounded bg-white border border-slate-200 text-slate-800 text-xs font-mono font-bold">
+                              📅 Date: {report.timestamp}
+                            </span>
+                            {isComplete ? (
+                              <span className="px-2.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-mono font-bold">
+                                ✓ 100% Verified
+                              </span>
+                            ) : (
+                              <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-mono font-bold">
+                                {report.pendingCount} Pending
+                              </span>
+                            )}
+                          </div>
+
+                          <p className="text-xs font-mono text-slate-700">
+                            Verified by <span className="font-bold text-slate-900">{report.verifiedBy}</span> •{' '}
+                            <span className="font-bold text-emerald-700">
+                              {report.verifiedCount} / {report.totalItems} Items Scanned
+                            </span>{' '}
+                            ({formatNumber(report.verifiedWeight, report.category === 'Gold' ? 3 : 2)} /{' '}
+                            {formatNumber(report.totalWeight, report.category === 'Gold' ? 3 : 2)} {unit})
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2 self-end md:self-center">
+                          <button
+                            onClick={() => setExpandedReportId(isExpanded ? null : report.id)}
+                            className="px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-xs font-mono font-bold text-slate-800 transition-colors cursor-pointer"
+                          >
+                            {isExpanded ? 'Hide Items' : `View Items (${report.verifiedCount})`}
+                          </button>
+                          <button
+                            onClick={() => deleteVerificationReport(report.id)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                            title="Delete Verification Report"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {isExpanded && (
+                        <div className="border-t border-slate-200 bg-white p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+                          <div>
+                            <h4 className="font-bold text-emerald-800 mb-2">
+                              ✓ Verified Tags ({report.verifiedTags?.length || 0})
+                            </h4>
+                            {!report.verifiedTags || report.verifiedTags.length === 0 ? (
+                              <p className="text-slate-400">None scanned.</p>
+                            ) : (
+                              <div className="max-h-48 overflow-y-auto space-y-1 pr-2 custom-scrollbar">
+                                {report.verifiedTags.map((t, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="flex items-center justify-between py-1 px-2 rounded bg-emerald-50/50 border border-emerald-100"
+                                  >
+                                    <span className="font-bold text-slate-900">
+                                      {t.tagNo} — <span className="font-normal text-slate-600">{t.item}</span>
+                                    </span>
+                                    <span className="text-emerald-800 font-bold">
+                                      {formatNumber(t.weight, report.category === 'Gold' ? 3 : 2)} {unit}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <h4 className="font-bold text-amber-800 mb-2">
+                              ⏳ Pending / Unscanned Tags ({report.pendingTags?.length || 0})
+                            </h4>
+                            {!report.pendingTags || report.pendingTags.length === 0 ? (
+                              <p className="text-emerald-600 font-bold">All items verified! Zero pending.</p>
+                            ) : (
+                              <div className="max-h-48 overflow-y-auto space-y-1 pr-2 custom-scrollbar">
+                                {report.pendingTags.map((t, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="flex items-center justify-between py-1 px-2 rounded bg-amber-50/50 border border-amber-100"
+                                  >
+                                    <span className="font-bold text-slate-900">
+                                      {t.tagNo} — <span className="font-normal text-slate-600">{t.item}</span>
+                                    </span>
+                                    <span className="text-amber-800 font-bold">
+                                      {formatNumber(t.weight, report.category === 'Gold' ? 3 : 2)} {unit}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        )}
 
         {/* ===== TAB 4: ALERTS & LOGS ===== */}
         {adminSectionTab === 'alerts' && (

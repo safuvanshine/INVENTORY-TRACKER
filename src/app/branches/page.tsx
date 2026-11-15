@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useInventory } from '@/context/InventoryContext';
+import { useAuth } from '@/context/AuthContext';
 import { LiveTicker } from '@/components/layout/LiveTicker';
 import { formatNumber, formatUsd, exportToCsv } from '@/lib/utils';
 import {
@@ -105,7 +106,9 @@ const playAudioFeedback = (type: 'success' | 'error') => {
 };
 
 export default function BranchesPage() {
-  const { goldItems, diamondItems, goldSpotPrice, showToast, addAuditLog } = useInventory();
+  const { goldItems, diamondItems, goldSpotPrice, showToast, addAuditLog, saveVerificationReport } = useInventory();
+  const { currentUser } = useAuth();
+  const [justSavedReport, setJustSavedReport] = useState(false);
 
   // Selection states
   const [selectedBranchKey, setSelectedBranchKey] = useState<string>('HO');
@@ -115,15 +118,24 @@ export default function BranchesPage() {
   // Auditor / Verifier Name state
   const [verifierName, setVerifierName] = useState<string>('Safuwan');
 
-  // Load saved verifier name from localStorage on mount
+  // Load saved verifier name from localStorage or currentUser on mount
   useEffect(() => {
     try {
       const savedName = localStorage.getItem('shine_audit_verifier_name');
-      if (savedName) setVerifierName(savedName);
+      if (savedName) {
+        setVerifierName(savedName);
+      } else if (currentUser?.name) {
+        setVerifierName(currentUser.name);
+      }
+      if (currentUser?.branch && STANDARD_BRANCH_CODES.includes(currentUser.branch)) {
+        setSelectedBranchKey(currentUser.branch);
+        setTempBranchKey(currentUser.branch);
+        setAppliedCriteria(prev => ({ ...prev, branch: currentUser.branch }));
+      }
     } catch {
       // Ignore
     }
-  }, []);
+  }, [currentUser]);
 
   const handleVerifierChange = (name: string) => {
     setVerifierName(name);
@@ -441,6 +453,34 @@ export default function BranchesPage() {
     );
   };
 
+  // Save Verification Report to Admin Section with Today's Date
+  const handleSaveVerificationToAdmin = () => {
+    const branchCode = extractBranchCode(appliedCriteria.branch) || appliedCriteria.branch;
+    const catLabel = appliedCriteria.category === 'gold' ? 'Gold' : 'Diamond';
+    saveVerificationReport({
+      branch: branchCode,
+      category: catLabel,
+      verifiedBy: verifierName.trim() || currentUser?.name || branchCode,
+      totalItems: totalCount,
+      verifiedCount,
+      pendingCount: balanceCount,
+      verifiedWeight,
+      totalWeight: totalAppliedWeight,
+      verifiedTags: verifiedItems.map(i => ({
+        tagNo: i.tagNo,
+        item: i.item,
+        weight: Number((i as any).weight || (i as any).carat || 0)
+      })),
+      pendingTags: pendingItems.map(i => ({
+        tagNo: i.tagNo,
+        item: i.item,
+        weight: Number((i as any).weight || (i as any).carat || 0)
+      }))
+    });
+    setJustSavedReport(true);
+    setTimeout(() => setJustSavedReport(false), 4000);
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-[#f7f9fb]">
       <LiveTicker mode="all" />
@@ -729,7 +769,14 @@ export default function BranchesPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 self-end md:self-center">
+                <div className="flex items-center gap-2 self-end md:self-center flex-wrap">
+                  <button
+                    onClick={handleSaveVerificationToAdmin}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-bold rounded-lg shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-white" />
+                    {justSavedReport ? '✓ Saved to Admin!' : 'Save Verification to Admin'}
+                  </button>
                   <button
                     onClick={handleExportReconciliation}
                     className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-mono font-semibold rounded-lg border border-slate-700 transition-colors flex items-center gap-1.5"
@@ -1096,13 +1143,22 @@ export default function BranchesPage() {
                   {/* Right Box Footer */}
                   <div className="flex-shrink-0 p-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs font-mono text-slate-500">
                     <span>{verifiedCount} verified in this session</span>
-                    <button
-                      onClick={handleExportReconciliation}
-                      className="text-xs font-bold text-emerald-800 hover:underline flex items-center gap-1 font-mono uppercase"
-                    >
-                      <Download className="w-3 h-3" />
-                      Export Manifest
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={handleSaveVerificationToAdmin}
+                        className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1 font-mono cursor-pointer shadow-xs"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        {justSavedReport ? 'Saved!' : 'Save Verification'}
+                      </button>
+                      <button
+                        onClick={handleExportReconciliation}
+                        className="text-xs font-bold text-emerald-800 hover:underline flex items-center gap-1 font-mono uppercase"
+                      >
+                        <Download className="w-3 h-3" />
+                        Export Manifest
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

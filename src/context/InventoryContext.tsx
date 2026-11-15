@@ -10,7 +10,8 @@ import {
   SystemAlert,
   AuditLogEntry,
   UserAccount,
-  TickerMovement
+  TickerMovement,
+  BranchVerificationReport
 } from '@/lib/types';
 import {
   INITIAL_GOLD_ITEMS,
@@ -52,6 +53,11 @@ interface InventoryContextType {
   // Hold & Release System
   holdItem: (category: 'gold' | 'diamond', id: string, branch: string, days: 1 | 2 | 3, heldBy: string) => void;
   releaseHold: (category: 'gold' | 'diamond', id: string) => void;
+
+  // Branch Stock Verification Reports
+  verificationReports: BranchVerificationReport[];
+  saveVerificationReport: (report: Omit<BranchVerificationReport, 'id' | 'date' | 'timestamp'>) => void;
+  deleteVerificationReport: (id: string) => void;
 
   // Reset & Restore Data
   resetDefaultData: () => void;
@@ -102,7 +108,8 @@ const STORAGE_KEYS = {
   ALERTS: 'shine_alerts_v2',
   AUDIT_LOGS: 'shine_audit_logs_v2',
   USERS: 'shine_users_v2',
-  SPOT_PRICE: 'shine_gold_spot_price_v2'
+  SPOT_PRICE: 'shine_gold_spot_price_v2',
+  VERIFICATIONS: 'shine_verification_reports_v1'
 };
 
 export function InventoryProvider({ children }: { children: React.ReactNode }) {
@@ -115,6 +122,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
   const [alerts, setAlerts] = useState<SystemAlert[]>(INITIAL_ALERTS);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(INITIAL_AUDIT_LOGS);
   const [users, setUsers] = useState<UserAccount[]>(INITIAL_USERS);
+  const [verificationReports, setVerificationReports] = useState<BranchVerificationReport[]>([]);
   const [goldSpotPrice, setGoldSpotPrice] = useState<number>(GOLD_SPOT_PRICE_PER_GRAM);
   const [tickerMovements, setTickerMovements] = useState<TickerMovement[]>(INITIAL_TICKER_MOVEMENTS);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -139,6 +147,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
             if (serverData.alerts) setAlerts(serverData.alerts);
             if (serverData.auditLogs) setAuditLogs(serverData.auditLogs);
             if (serverData.users) setUsers(serverData.users);
+            if (serverData.verificationReports) setVerificationReports(serverData.verificationReports);
             if (serverData.goldSpotPrice) setGoldSpotPrice(serverData.goldSpotPrice);
             setIsLoaded(true);
 
@@ -204,6 +213,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem(STORAGE_KEYS.ALERTS, JSON.stringify(alerts));
       localStorage.setItem(STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(auditLogs));
       localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+      localStorage.setItem(STORAGE_KEYS.VERIFICATIONS, JSON.stringify(verificationReports));
       localStorage.setItem(STORAGE_KEYS.SPOT_PRICE, goldSpotPrice.toString());
     } catch (e) {
       console.error('Failed to save to localStorage cache', e);
@@ -217,6 +227,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         alerts,
         auditLogs,
         users,
+        verificationReports,
         goldSpotPrice,
         lastSynced: new Date().toISOString()
       };
@@ -241,7 +252,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     }, 350);
 
     return () => clearTimeout(syncTimeout);
-  }, [goldItems, diamondItems, alerts, auditLogs, users, goldSpotPrice, isLoaded]);
+  }, [goldItems, diamondItems, alerts, auditLogs, users, verificationReports, goldSpotPrice, isLoaded]);
 
   const showToast = (title: string, message: string, type: 'success' | 'error' | 'info' = 'success') => {
     const id = Math.random().toString(36).substring(2, 9);
@@ -827,6 +838,60 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const saveVerificationReport = (
+    reportData: Omit<BranchVerificationReport, 'id' | 'date' | 'timestamp'>
+  ) => {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+    const timeStr = now.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    const newReport: BranchVerificationReport = {
+      ...reportData,
+      id: `vrf-${Date.now()}`,
+      date: dateStr,
+      timestamp: `${dateStr} • ${timeStr}`
+    };
+
+    setVerificationReports(prev => [newReport, ...prev]);
+
+    const newAlert: SystemAlert = {
+      id: `alt-vrf-${Date.now()}`,
+      title: `Stock Verified: ${reportData.branch} (${reportData.category})`,
+      description: `${reportData.branch} ${reportData.category} stock verified on ${dateStr} by ${reportData.verifiedBy}: ${reportData.verifiedCount}/${reportData.totalItems} items verified.`,
+      category: reportData.category,
+      priority: 'Info',
+      timestamp: `${dateStr} ${timeStr}`,
+      read: false,
+      actionLabel: 'View Verification'
+    };
+    setAlerts(prev => [newAlert, ...prev]);
+
+    addAuditLog({
+      user: reportData.verifiedBy,
+      action: 'Branch Stock Verification Saved',
+      itemTag: `${reportData.verifiedCount}/${reportData.totalItems} items`,
+      category: reportData.category,
+      branch: reportData.branch,
+      details: `${reportData.branch} ${reportData.category} verification saved (${dateStr}): ${reportData.verifiedCount} verified, ${reportData.pendingCount} pending.`
+    });
+
+    showToast(
+      'Verification Saved to Admin',
+      `${reportData.branch} ${reportData.category} stock verification saved (${dateStr}).`
+    );
+  };
+
+  const deleteVerificationReport = (id: string) => {
+    setVerificationReports(prev => prev.filter(r => r.id !== id));
+    showToast('Report Deleted', 'Verification report removed.', 'info');
+  };
+
   // Stats calculation
   const totalGoldWeightKg = goldItems.reduce((sum, item) => sum + (item.weight || 0), 0);
   const totalGoldValueUsd = goldItems.reduce((sum, item) => sum + (item.estValueUsd || (item.weight || 0) * 1000 * goldSpotPrice), 0);
@@ -853,6 +918,9 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         bulkAddDiamonds,
         holdItem,
         releaseHold,
+        verificationReports,
+        saveVerificationReport,
+        deleteVerificationReport,
         resetDefaultData,
         branches,
         selectedBranch,
