@@ -9,6 +9,13 @@ export interface ItemHoldInfo {
   expiresAt: string;
 }
 
+export interface ItemTransferInfo {
+  fromBranch: string;
+  toBranch: string;
+  initiatedBy: string;
+  initiatedAt: string;
+}
+
 export interface GoldItem {
   id: string;
   tagNo: string;           // 1. TAG NUMBER
@@ -24,6 +31,7 @@ export interface GoldItem {
   estValueUsd?: number;
   lastUpdated: string;
   holdInfo?: ItemHoldInfo | null;
+  transferInfo?: ItemTransferInfo | null;
 }
 
 export type DiamondType = 'Natural' | 'Lab Grown';
@@ -49,6 +57,7 @@ export interface DiamondItem {
   status?: DiamondStatus;
   lastUpdated: string;
   holdInfo?: ItemHoldInfo | null;
+  transferInfo?: ItemTransferInfo | null;
 }
 
 export interface Branch {

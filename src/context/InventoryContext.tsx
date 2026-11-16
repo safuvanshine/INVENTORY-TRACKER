@@ -54,6 +54,11 @@ interface InventoryContextType {
   holdItem: (category: 'gold' | 'diamond', id: string, branch: string, days: 1 | 2 | 3, heldBy: string) => void;
   releaseHold: (category: 'gold' | 'diamond', id: string) => void;
 
+  // Branch-to-Branch Transfer (Requires Opposite Branch Acceptance)
+  initiateTransfer: (category: 'gold' | 'diamond', id: string, toBranch: string, initiatedBy: string) => void;
+  acceptTransfer: (category: 'gold' | 'diamond', id: string, acceptedBy: string) => void;
+  cancelTransfer: (category: 'gold' | 'diamond', id: string, cancelledBy: string) => void;
+
   // Branch Stock Verification Reports
   verificationReports: BranchVerificationReport[];
   saveVerificationReport: (report: Omit<BranchVerificationReport, 'id' | 'date' | 'timestamp'>) => void;
@@ -895,6 +900,168 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     showToast('Report Deleted', 'Verification report removed.', 'info');
   };
 
+  const initiateTransfer = (category: 'gold' | 'diamond', id: string, toBranch: string, initiatedBy: string) => {
+    const nowStr = new Date().toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    if (category === 'gold') {
+      const target = goldItems.find(i => i.id === id);
+      if (!target) return;
+      const fromBranch = target.branch;
+      const transferInfo = {
+        fromBranch,
+        toBranch,
+        initiatedBy,
+        initiatedAt: nowStr
+      };
+      setGoldItems(prev =>
+        prev.map(i => (i.id === id ? { ...i, status: 'In Transit', transferInfo, lastUpdated: 'Just now' } : i))
+      );
+      setAlerts(prev => [
+        {
+          id: `alt-tr-${Date.now()}`,
+          title: `Transfer Sent: ${target.tagNo} (${fromBranch} ➔ ${toBranch})`,
+          description: `Tag ${target.tagNo} (${target.item}) sent from ${fromBranch} to ${toBranch}. Waiting for ${toBranch} to accept.`,
+          category: 'Gold',
+          priority: 'Action Req',
+          timestamp: 'Just now',
+          read: false,
+          actionLabel: 'View Transfer'
+        },
+        ...prev
+      ]);
+      addAuditLog({
+        user: initiatedBy,
+        action: 'Transfer Initiated',
+        itemTag: target.tagNo,
+        category: 'Gold',
+        branch: `${fromBranch} ➔ ${toBranch}`,
+        details: `Tag ${target.tagNo} transfer requested from ${fromBranch} to ${toBranch} (waiting for ${toBranch} acceptance)`
+      });
+      showToast('Transfer Sent', `Tag ${target.tagNo} sent to ${toBranch}. Waiting for ${toBranch} to accept.`);
+    } else {
+      const target = diamondItems.find(i => i.id === id);
+      if (!target) return;
+      const fromBranch = target.branch;
+      const transferInfo = {
+        fromBranch,
+        toBranch,
+        initiatedBy,
+        initiatedAt: nowStr
+      };
+      setDiamondItems(prev =>
+        prev.map(i => (i.id === id ? { ...i, status: 'In Transit', transferInfo, lastUpdated: 'Just now' } : i))
+      );
+      setAlerts(prev => [
+        {
+          id: `alt-tr-${Date.now()}`,
+          title: `Transfer Sent: ${target.tagNo} (${fromBranch} ➔ ${toBranch})`,
+          description: `Tag ${target.tagNo} (${target.item}) sent from ${fromBranch} to ${toBranch}. Waiting for ${toBranch} to accept.`,
+          category: 'Diamond',
+          priority: 'Action Req',
+          timestamp: 'Just now',
+          read: false,
+          actionLabel: 'View Transfer'
+        },
+        ...prev
+      ]);
+      addAuditLog({
+        user: initiatedBy,
+        action: 'Transfer Initiated',
+        itemTag: target.tagNo,
+        category: 'Diamond',
+        branch: `${fromBranch} ➔ ${toBranch}`,
+        details: `Tag ${target.tagNo} transfer requested from ${fromBranch} to ${toBranch} (waiting for ${toBranch} acceptance)`
+      });
+      showToast('Transfer Sent', `Tag ${target.tagNo} sent to ${toBranch}. Waiting for ${toBranch} to accept.`);
+    }
+  };
+
+  const acceptTransfer = (category: 'gold' | 'diamond', id: string, acceptedBy: string) => {
+    if (category === 'gold') {
+      const target = goldItems.find(i => i.id === id);
+      if (!target || !target.transferInfo) return;
+      const { fromBranch, toBranch } = target.transferInfo;
+      setGoldItems(prev =>
+        prev.map(i =>
+          i.id === id
+            ? { ...i, branch: toBranch, status: 'In Vault', transferInfo: null, lastUpdated: 'Just now' }
+            : i
+        )
+      );
+      addAuditLog({
+        user: acceptedBy,
+        action: 'Transfer Accepted',
+        itemTag: target.tagNo,
+        category: 'Gold',
+        branch: toBranch,
+        details: `Tag ${target.tagNo} accepted by ${toBranch} (transferred from ${fromBranch}) and added to ${toBranch} stock`
+      });
+      showToast('Stock Transfer Accepted', `Tag ${target.tagNo} added to ${toBranch} stock!`);
+    } else {
+      const target = diamondItems.find(i => i.id === id);
+      if (!target || !target.transferInfo) return;
+      const { fromBranch, toBranch } = target.transferInfo;
+      setDiamondItems(prev =>
+        prev.map(i =>
+          i.id === id
+            ? { ...i, branch: toBranch, status: 'In Vault', transferInfo: null, lastUpdated: 'Just now' }
+            : i
+        )
+      );
+      addAuditLog({
+        user: acceptedBy,
+        action: 'Transfer Accepted',
+        itemTag: target.tagNo,
+        category: 'Diamond',
+        branch: toBranch,
+        details: `Tag ${target.tagNo} accepted by ${toBranch} (transferred from ${fromBranch}) and added to ${toBranch} stock`
+      });
+      showToast('Stock Transfer Accepted', `Tag ${target.tagNo} added to ${toBranch} stock!`);
+    }
+  };
+
+  const cancelTransfer = (category: 'gold' | 'diamond', id: string, cancelledBy: string) => {
+    if (category === 'gold') {
+      const target = goldItems.find(i => i.id === id);
+      if (!target || !target.transferInfo) return;
+      const { fromBranch, toBranch } = target.transferInfo;
+      setGoldItems(prev =>
+        prev.map(i => (i.id === id ? { ...i, status: 'In Vault', transferInfo: null, lastUpdated: 'Just now' } : i))
+      );
+      addAuditLog({
+        user: cancelledBy,
+        action: 'Transfer Cancelled / Rejected',
+        itemTag: target.tagNo,
+        category: 'Gold',
+        branch: fromBranch,
+        details: `Cancelled transfer of Tag ${target.tagNo} (${fromBranch} ➔ ${toBranch}); item remains in ${fromBranch}`
+      });
+      showToast('Transfer Cancelled', `Tag ${target.tagNo} remains in ${fromBranch} stock.`, 'info');
+    } else {
+      const target = diamondItems.find(i => i.id === id);
+      if (!target || !target.transferInfo) return;
+      const { fromBranch, toBranch } = target.transferInfo;
+      setDiamondItems(prev =>
+        prev.map(i => (i.id === id ? { ...i, status: 'In Vault', transferInfo: null, lastUpdated: 'Just now' } : i))
+      );
+      addAuditLog({
+        user: cancelledBy,
+        action: 'Transfer Cancelled / Rejected',
+        itemTag: target.tagNo,
+        category: 'Diamond',
+        branch: fromBranch,
+        details: `Cancelled transfer of Tag ${target.tagNo} (${fromBranch} ➔ ${toBranch}); item remains in ${fromBranch}`
+      });
+      showToast('Transfer Cancelled', `Tag ${target.tagNo} remains in ${fromBranch} stock.`, 'info');
+    }
+  };
+
   // Stats calculation
   const totalGoldWeightKg = goldItems.reduce((sum, item) => sum + (item.weight || 0), 0);
   const totalGoldValueUsd = goldItems.reduce((sum, item) => sum + (item.estValueUsd || (item.weight || 0) * 1000 * goldSpotPrice), 0);
@@ -921,6 +1088,9 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         bulkAddDiamonds,
         holdItem,
         releaseHold,
+        initiateTransfer,
+        acceptTransfer,
+        cancelTransfer,
         verificationReports,
         saveVerificationReport,
         deleteVerificationReport,

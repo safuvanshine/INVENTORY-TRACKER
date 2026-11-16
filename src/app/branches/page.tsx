@@ -106,7 +106,16 @@ const playAudioFeedback = (type: 'success' | 'error') => {
 };
 
 export default function BranchesPage() {
-  const { goldItems, diamondItems, goldSpotPrice, showToast, addAuditLog, saveVerificationReport } = useInventory();
+  const {
+    goldItems,
+    diamondItems,
+    goldSpotPrice,
+    showToast,
+    addAuditLog,
+    saveVerificationReport,
+    acceptTransfer,
+    cancelTransfer
+  } = useInventory();
   const { currentUser } = useAuth();
   const [justSavedReport, setJustSavedReport] = useState(false);
 
@@ -486,6 +495,96 @@ export default function BranchesPage() {
       <LiveTicker mode="all" />
 
       <main className="p-4 sm:p-6 md:p-8 max-w-[1600px] mx-auto w-full flex-1 flex flex-col gap-6">
+        {/* ===== INCOMING STOCK TRANSFERS WAITING FOR ACCEPTANCE ===== */}
+        {(() => {
+          const branchCode = extractBranchCode(selectedBranchKey);
+          const incomingGold = goldItems
+            .filter(i => i.transferInfo && (selectedBranchKey === 'ALL' || i.transferInfo.toBranch.toUpperCase() === branchCode))
+            .map(i => ({ ...i, category: 'gold' as const, detail: `${formatNumber(i.weight, 3)} kg • ${i.brand}` }));
+          const incomingDiamonds = diamondItems
+            .filter(i => i.transferInfo && (selectedBranchKey === 'ALL' || i.transferInfo.toBranch.toUpperCase() === branchCode))
+            .map(i => ({ ...i, category: 'diamond' as const, detail: `${formatNumber(i.carat, 2)} ct • ${i.clarity}/${i.colour}` }));
+          const allIncoming = [...incomingGold, ...incomingDiamonds];
+
+          if (allIncoming.length === 0) return null;
+
+          return (
+            <section className="bg-blue-50/90 border-2 border-blue-400 rounded-2xl p-5 shadow-sm space-y-3.5 animate-in fade-in">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold">
+                    <ArrowRight className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm sm:text-base font-bold text-slate-900 font-headline flex items-center gap-2">
+                      <span>Incoming Stock Transfers Waiting for Acceptance</span>
+                      <span className="px-2 py-0.5 rounded-full bg-blue-600 text-white text-xs font-mono">
+                        {allIncoming.length} Pending
+                      </span>
+                    </h2>
+                    <p className="text-xs text-slate-600 font-mono">
+                      Click <strong>Accept Stock</strong> to receive these items into your branch inventory
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {allIncoming.map(trItem => {
+                  const tr = trItem.transferInfo!;
+                  return (
+                    <div
+                      key={`${trItem.category}-${trItem.id}`}
+                      className="bg-white rounded-xl p-4 border border-blue-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-slate-900 text-[#fed65b]">
+                            {trItem.category}
+                          </span>
+                          <span className="text-sm font-mono font-extrabold text-slate-900">
+                            Tag: {trItem.tagNo}
+                          </span>
+                          <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-900">
+                            {tr.fromBranch} ➔ {tr.toBranch}
+                          </span>
+                        </div>
+                        <p className="text-xs font-semibold text-slate-800 mt-1">
+                          {trItem.item} <span className="text-slate-400 font-mono">({trItem.detail})</span>
+                        </p>
+                        <p className="text-[10px] font-mono text-slate-500 mt-0.5">
+                          Sent from <strong>{tr.fromBranch}</strong> by {tr.initiatedBy} ({tr.initiatedAt})
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                        <button
+                          onClick={() =>
+                            acceptTransfer(trItem.category, trItem.id, currentUser?.name || tr.toBranch)
+                          }
+                          className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-mono font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                        >
+                          <Check className="w-4 h-4" />
+                          Accept into {tr.toBranch}
+                        </button>
+                        <button
+                          onClick={() =>
+                            cancelTransfer(trItem.category, trItem.id, currentUser?.name || tr.toBranch)
+                          }
+                          className="px-2.5 py-2 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 text-xs font-mono font-semibold transition-all cursor-pointer"
+                          title="Reject / Cancel Transfer"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })()}
+
         {/* Page Header & Synchronized Branch Filter Chips */}
         <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-sm flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

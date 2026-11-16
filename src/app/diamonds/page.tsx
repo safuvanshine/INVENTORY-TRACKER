@@ -22,23 +22,35 @@ import {
   Building2,
   Award,
   UploadCloud,
-  Lock
+  Lock,
+  ArrowRightLeft,
+  Check
 } from 'lucide-react';
 import { BulkUploadModal } from '@/components/modals/BulkUploadModal';
 import { HoldItemModal } from '@/components/modals/HoldItemModal';
+import { TransferItemModal } from '@/components/modals/TransferItemModal';
 
 export default function DiamondsPage() {
   const {
     diamondItems,
     selectedBranch,
     globalSearch,
-    totalDiamondCarats
+    totalDiamondCarats,
+    acceptTransfer,
+    cancelTransfer
   } = useInventory();
-  const { isAdmin } = useAuth();
+  const { isAdmin, currentUser } = useAuth();
 
   // Modals state
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState<boolean>(false);
   const [holdingItem, setHoldingItem] = useState<{
+    id: string;
+    tagNo: string;
+    item: string;
+    branch: string;
+    category: 'gold' | 'diamond';
+  } | null>(null);
+  const [transferringItem, setTransferringItem] = useState<{
     id: string;
     tagNo: string;
     item: string;
@@ -130,9 +142,14 @@ export default function DiamondsPage() {
         if (!matches) return false;
       }
 
-      // Global Navbar Branch Filter
-      if (selectedBranch !== 'All Branches' && !item.branch.toLowerCase().includes(selectedBranch.toLowerCase().split(' ')[0])) {
-        return false;
+      // Global Navbar Branch Filter (also show items being transferred TO this branch so they can accept)
+      if (selectedBranch !== 'All Branches') {
+        const bKey = selectedBranch.trim().toLowerCase();
+        const isCurrentBranch = item.branch.trim().toLowerCase() === bKey;
+        const isIncomingToBranch = item.transferInfo?.toBranch.trim().toLowerCase() === bKey;
+        if (!isCurrentBranch && !isIncomingToBranch) {
+          return false;
+        }
       }
 
       // Page Branch Filter
@@ -709,29 +726,75 @@ export default function DiamondsPage() {
                         </span>
                       </td>
 
-                      {/* 11. Hold Action / Status */}
+                      {/* 11. Hold & Transfer Action / Status */}
                       <td className="px-5 py-3.5 text-right">
-                        {item.holdInfo ? (
+                        {item.transferInfo ? (
+                          <div className="inline-flex items-center justify-end gap-1.5 flex-wrap">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 text-blue-900 text-[11px] font-mono font-bold">
+                              <ArrowRightLeft className="w-3 h-3 text-blue-600" />
+                              {item.transferInfo.fromBranch} ➔ {item.transferInfo.toBranch}
+                            </span>
+                            {(isAdmin ||
+                              currentUser?.branch?.toUpperCase() === item.transferInfo.toBranch.toUpperCase()) && (
+                              <button
+                                onClick={() =>
+                                  acceptTransfer('diamond', item.id, currentUser?.name || item.transferInfo!.toBranch)
+                                }
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-mono font-bold shadow-xs transition-all cursor-pointer"
+                                title={`Accept into ${item.transferInfo.toBranch} stock`}
+                              >
+                                <Check className="w-3 h-3" />
+                                Accept ({item.transferInfo.toBranch})
+                              </button>
+                            )}
+                            <button
+                              onClick={() =>
+                                cancelTransfer('diamond', item.id, currentUser?.name || item.branch)
+                              }
+                              className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                              title="Cancel Transfer"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : item.holdInfo ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-100 border border-amber-300 text-amber-900 text-[11px] font-mono font-bold">
                             <Lock className="w-3 h-3 text-amber-700" />
                             ON HOLD • {item.holdInfo.branch} ({item.holdInfo.days}D)
                           </span>
                         ) : (
-                          <button
-                            onClick={() =>
-                              setHoldingItem({
-                                id: item.id,
-                                tagNo: item.tagNo,
-                                item: item.item,
-                                branch: item.branch,
-                                category: 'diamond'
-                              })
-                            }
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-[#fed65b] text-[11px] font-mono font-bold shadow-xs transition-all cursor-pointer"
-                          >
-                            <Lock className="w-3 h-3" />
-                            Hold Item
-                          </button>
+                          <div className="inline-flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() =>
+                                setHoldingItem({
+                                  id: item.id,
+                                  tagNo: item.tagNo,
+                                  item: item.item,
+                                  branch: item.branch,
+                                  category: 'diamond'
+                                })
+                              }
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-[#fed65b] text-[11px] font-mono font-bold shadow-xs transition-all cursor-pointer"
+                            >
+                              <Lock className="w-3 h-3" />
+                              Hold
+                            </button>
+                            <button
+                              onClick={() =>
+                                setTransferringItem({
+                                  id: item.id,
+                                  tagNo: item.tagNo,
+                                  item: item.item,
+                                  branch: item.branch,
+                                  category: 'diamond'
+                                })
+                              }
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 text-[11px] font-mono font-bold transition-all cursor-pointer"
+                            >
+                              <ArrowRightLeft className="w-3 h-3 text-slate-600" />
+                              Transfer
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -782,6 +845,13 @@ export default function DiamondsPage() {
         isOpen={!!holdingItem}
         onClose={() => setHoldingItem(null)}
         item={holdingItem}
+      />
+
+      {/* Transfer Item Modal */}
+      <TransferItemModal
+        isOpen={!!transferringItem}
+        onClose={() => setTransferringItem(null)}
+        item={transferringItem}
       />
     </div>
   );

@@ -64,6 +64,8 @@ export default function AdminPage() {
     clearAllGold,
     clearAllDiamonds,
     releaseHold,
+    acceptTransfer,
+    cancelTransfer,
     verificationReports,
     deleteVerificationReport,
     resetDefaultData
@@ -1206,6 +1208,80 @@ export default function AdminPage() {
             </div>
           )}
         </section>
+        )}
+
+        {/* ===== PENDING BRANCH TRANSFERS (SHOWN IN HOLDS TAB) ===== */}
+        {adminSectionTab === 'holds' && (
+          <section className="bg-white border-2 border-blue-300/80 rounded-2xl p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div>
+                <h2 className="text-base font-bold text-slate-900 font-headline">
+                  Pending Branch-to-Branch Transfers
+                </h2>
+                <p className="text-xs text-slate-500 font-mono mt-0.5">
+                  Items sent between branches waiting for the receiving branch to accept
+                </p>
+              </div>
+              <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-900 text-xs font-mono font-bold border border-blue-300">
+                {goldItems.filter(i => i.transferInfo).length + diamondItems.filter(i => i.transferInfo).length} In Transit
+              </span>
+            </div>
+
+            {goldItems.filter(i => i.transferInfo).length === 0 &&
+            diamondItems.filter(i => i.transferInfo).length === 0 ? (
+              <div className="py-6 text-center text-xs text-slate-400 font-mono bg-slate-50/60 rounded-xl border border-dashed border-slate-200">
+                No pending branch transfers at the moment.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                {[
+                  ...goldItems
+                    .filter(i => i.transferInfo)
+                    .map(i => ({ ...i, category: 'gold' as const })),
+                  ...diamondItems
+                    .filter(i => i.transferInfo)
+                    .map(i => ({ ...i, category: 'diamond' as const }))
+                ].map(trItem => {
+                  const tr = trItem.transferInfo!;
+                  return (
+                    <div
+                      key={`${trItem.category}-${trItem.id}`}
+                      className="p-4 rounded-xl border border-blue-200 bg-blue-50/40 flex items-center justify-between gap-3"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono font-extrabold text-slate-900">
+                            Tag: {trItem.tagNo}
+                          </span>
+                          <span className="px-2 py-0.5 rounded bg-blue-600 text-white text-[11px] font-mono font-bold">
+                            {tr.fromBranch} ➔ {tr.toBranch}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-700 font-semibold mt-1">{trItem.item}</p>
+                        <p className="text-[10px] font-mono text-slate-500 mt-0.5">
+                          Waiting for {tr.toBranch} to accept (Sent by {tr.initiatedBy})
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => acceptTransfer(trItem.category, trItem.id, 'Admin')}
+                          className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-mono font-bold cursor-pointer"
+                        >
+                          Accept ({tr.toBranch})
+                        </button>
+                        <button
+                          onClick={() => cancelTransfer(trItem.category, trItem.id, 'Admin')}
+                          className="px-2.5 py-1.5 rounded-lg bg-slate-200 hover:bg-rose-100 text-slate-700 hover:text-rose-700 text-xs font-mono font-semibold cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
         )}
 
         {/* ===== TAB 1 (BOTTOM): 2 PROMINENT BOX CARDS: GOLD & DIAMOND SELECTOR ===== */}
