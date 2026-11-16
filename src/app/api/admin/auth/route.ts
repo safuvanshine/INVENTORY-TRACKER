@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { db, VAULT_SECRET_KEY } from '@/lib/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const DATA_FILE = path.join(DATA_DIR, 'vault_data.json');
@@ -11,6 +13,18 @@ const DEFAULT_ADMIN_PASSWORD = 'shine123';
 let memoryPassword: string | null = null;
 
 async function getStoredPassword(): Promise<string> {
+  // 1. Check Firebase Firestore cloud first for permanent storage
+  try {
+    const snap = await getDoc(doc(db, 'vault', 'inventory'));
+    if (snap.exists()) {
+      const cloudPass = snap.data()?.adminPassword;
+      if (cloudPass && typeof cloudPass === 'string') {
+        memoryPassword = cloudPass;
+        return cloudPass;
+      }
+    }
+  } catch {}
+
   if (memoryPassword) return memoryPassword;
 
   if (fs.existsSync(TMP_FILE)) {
@@ -33,6 +47,21 @@ async function getStoredPassword(): Promise<string> {
 
 async function setStoredPassword(newPass: string) {
   memoryPassword = newPass;
+
+  // 1. Save permanently to Firebase Firestore
+  try {
+    await setDoc(
+      doc(db, 'vault', 'inventory'),
+      {
+        adminPassword: newPass,
+        vaultSecretKey: VAULT_SECRET_KEY,
+        lastSynced: new Date().toISOString()
+      },
+      { merge: true }
+    );
+  } catch (err) {
+    console.error('Failed to save admin password to Firestore:', err);
+  }
 
   let data: any = {};
   if (fs.existsSync(TMP_FILE)) {

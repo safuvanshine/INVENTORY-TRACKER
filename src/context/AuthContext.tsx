@@ -116,7 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (matchedUser) {
       // If user has specific password set, use it; otherwise default staff password 'staff123' or master password
       const expectedPassword = matchedUser.password || 'staff123';
-      if (cleanPassword === expectedPassword || cleanPassword === 'shine123') {
+      if (cleanPassword === expectedPassword) {
         const staffUser: UserAccount = {
           ...matchedUser,
           activeStatus: 'Active',

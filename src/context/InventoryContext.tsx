@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { db } from '@/lib/firebase';
+import { db, VAULT_SECRET_KEY } from '@/lib/firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import {
   GoldItem,
@@ -163,6 +163,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
               auditLogs: INITIAL_AUDIT_LOGS,
               users: INITIAL_USERS,
               goldSpotPrice: GOLD_SPOT_PRICE_PER_GRAM,
+              vaultSecretKey: VAULT_SECRET_KEY,
               lastSynced: new Date().toISOString()
             };
             try {
@@ -229,6 +230,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         users,
         verificationReports,
         goldSpotPrice,
+        vaultSecretKey: VAULT_SECRET_KEY,
         lastSynced: new Date().toISOString()
       };
 
@@ -657,8 +659,9 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         auditLogs: INITIAL_AUDIT_LOGS,
         users: INITIAL_USERS,
         goldSpotPrice: GOLD_SPOT_PRICE_PER_GRAM,
+        vaultSecretKey: VAULT_SECRET_KEY,
         lastSynced: new Date().toISOString()
-      }).catch(() => {});
+      }, { merge: true }).catch(() => {});
     } catch {}
 
     fetch('/api/inventory', {

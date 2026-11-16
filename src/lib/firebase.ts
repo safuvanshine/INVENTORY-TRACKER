@@ -13,5 +13,6 @@ const firebaseConfig = {
 
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const db = getFirestore(app);
+export const VAULT_SECRET_KEY = "SHINE_VAULT_SEC_2026_KEY_99X";
 export default app;
 
