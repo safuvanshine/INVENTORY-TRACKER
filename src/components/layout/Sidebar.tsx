@@ -159,7 +159,7 @@ export function Sidebar() {
             <div className="flex justify-between items-center text-xs">
               <span className="text-slate-500">Fine Gold</span>
               <span className="font-mono font-bold text-slate-900">
-                {totalGoldWeightKg.toFixed(1)} <span className="text-[10px] font-normal text-slate-400">kg</span>
+                {totalGoldWeightKg.toFixed(2)} <span className="text-[10px] font-normal text-slate-400">g</span>
               </span>
             </div>
             <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">

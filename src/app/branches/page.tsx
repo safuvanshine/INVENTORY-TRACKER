@@ -500,7 +500,7 @@ export default function BranchesPage() {
           const branchCode = extractBranchCode(selectedBranchKey);
           const incomingGold = goldItems
             .filter(i => i.transferInfo && (selectedBranchKey === 'ALL' || i.transferInfo.toBranch.toUpperCase() === branchCode))
-            .map(i => ({ ...i, category: 'gold' as const, detail: `${formatNumber(i.weight, 3)} kg • ${i.brand}` }));
+            .map(i => ({ ...i, category: 'gold' as const, detail: `${formatNumber(i.weight, 3)} g • ${i.brand}` }));
           const incomingDiamonds = diamondItems
             .filter(i => i.transferInfo && (selectedBranchKey === 'ALL' || i.transferInfo.toBranch.toUpperCase() === branchCode))
             .map(i => ({ ...i, category: 'diamond' as const, detail: `${formatNumber(i.carat, 2)} ct • ${i.clarity}/${i.colour}` }));
@@ -781,10 +781,10 @@ export default function BranchesPage() {
                 </p>
                 <p className="text-2xl sm:text-3xl font-bold font-headline text-slate-900">
                   {formatNumber(branchGoldTotalKg, 2)}{' '}
-                  <span className="text-xs font-normal text-slate-400 font-mono">kg</span>
+                  <span className="text-xs font-normal text-slate-400 font-mono">g</span>
                 </p>
                 <p className="text-[10px] text-emerald-700 font-mono mt-0.5">
-                  ≈ {formatUsd(branchGoldTotalKg * 1000 * goldSpotPrice)}
+                  ≈ {formatUsd(branchGoldTotalKg * goldSpotPrice)}
                 </p>
               </div>
             </div>
@@ -1011,7 +1011,7 @@ export default function BranchesPage() {
                                   </td>
                                   <td className="px-3.5 py-2.5 text-right font-bold text-slate-900">
                                     {formatNumber((item as any).weight, 3)}{' '}
-                                    <span className="text-[10px] font-normal text-slate-400">kg</span>
+                                    <span className="text-[10px] font-normal text-slate-400">g</span>
                                   </td>
                                   <td className="px-3.5 py-2.5 text-right font-bold text-slate-700">
                                     <span className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-[10px]">
@@ -1065,7 +1065,7 @@ export default function BranchesPage() {
                       Showing {filteredPendingItems.length} of {pendingItems.length} pending items
                     </span>
                     <span className="font-bold text-amber-700">
-                      Balance: {formatNumber(balanceWeight, 2)} {appliedCriteria.category === 'gold' ? 'kg' : 'ct'}
+                      Balance: {formatNumber(balanceWeight, 2)} {appliedCriteria.category === 'gold' ? 'g' : 'ct'}
                     </span>
                   </div>
                 </div>
@@ -1087,7 +1087,7 @@ export default function BranchesPage() {
                         </span>
                       </div>
                       <span className="text-xs font-mono font-bold text-emerald-700">
-                        {formatNumber(verifiedWeight, 2)} {appliedCriteria.category === 'gold' ? 'kg' : 'ct'}
+                        {formatNumber(verifiedWeight, 2)} {appliedCriteria.category === 'gold' ? 'g' : 'ct'}
                       </span>
                     </div>
 
@@ -1207,7 +1207,7 @@ export default function BranchesPage() {
                               </td>
                               <td className="px-3.5 py-2.5 text-right font-bold text-slate-900">
                                 {appliedCriteria.category === 'gold'
-                                  ? `${formatNumber((item as any).weight, 3)} kg`
+                                  ? `${formatNumber((item as any).weight, 3)} g`
                                   : `${formatNumber((item as any).carat, 2)} ct`}
                               </td>
                               {/* VERIFIED BY COLUMN */}

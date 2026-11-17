@@ -201,9 +201,9 @@ export default function GoldInventoryPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <MetricCard
             title="Total Gold Weight"
-            value={formatNumber(totalGoldWeightKg, 1)}
-            unit="kg"
-            trend={{ value: '+12.4 kg this week', positive: true }}
+            value={formatNumber(totalGoldWeightKg, 2)}
+            unit="g"
+            trend={{ value: '+12.4 g this week', positive: true }}
             icon={<Scale className="w-5 h-5" />}
             accentColor="gold"
           />
@@ -278,19 +278,19 @@ export default function GoldInventoryPage() {
               >
                 <option value="ALL">All Presets</option>
                 <optgroup label="── Weight Ranges ──">
-                  <option value="UNDER_1KG">&lt; 1.0 kg</option>
-                  <option value="1KG_TO_5KG">1.0 kg – 5.0 kg</option>
-                  <option value="5KG_TO_10KG">5.0 kg – 10.0 kg</option>
-                  <option value="OVER_10KG">&gt; 10.0 kg</option>
+                  <option value="UNDER_1KG">&lt; 1.0 g</option>
+                  <option value="1KG_TO_5KG">1.0 g – 5.0 g</option>
+                  <option value="5KG_TO_10KG">5.0 g – 10.0 g</option>
+                  <option value="OVER_10KG">&gt; 10.0 g</option>
                 </optgroup>
                 <optgroup label="── Exact Weights ──">
                   {uniqueWeights.map(w => (
-                    <option key={w} value={`EXACT_${w}`}>{formatNumber(w, 3)} kg</option>
+                    <option key={w} value={`EXACT_${w}`}>{formatNumber(w, 3)} g</option>
                   ))}
                 </optgroup>
               </select>
 
-              {/* Quick Weight Range Inputs (Min - Max kg) - SAME AS DIAMOND */}
+              {/* Quick Weight Range Inputs (Min - Max g) - SAME AS DIAMOND */}
               <div className="flex items-center gap-1.5 text-xs font-mono">
                 <span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">Weight:</span>
                 <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1">
@@ -317,7 +317,7 @@ export default function GoldInventoryPage() {
                     }}
                     className="w-12 bg-transparent text-left font-mono text-xs font-bold text-slate-800 focus:outline-none"
                   />
-                  <span className="text-slate-400 text-[10px] ml-1">kg</span>
+                  <span className="text-slate-400 text-[10px] ml-1">g</span>
                 </div>
               </div>
             </div>
@@ -353,11 +353,11 @@ export default function GoldInventoryPage() {
                   className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-[11px] font-bold border border-blue-200 hover:bg-blue-100 transition-all"
                 >
                   Preset: {weightFilter.startsWith('EXACT_')
-                    ? `${formatNumber(parseFloat(weightFilter.replace('EXACT_', '')), 3)} kg`
-                    : weightFilter === 'UNDER_1KG' ? '< 1.0 kg'
-                    : weightFilter === '1KG_TO_5KG' ? '1.0 – 5.0 kg'
-                    : weightFilter === '5KG_TO_10KG' ? '5.0 – 10.0 kg'
-                    : '> 10.0 kg'}
+                    ? `${formatNumber(parseFloat(weightFilter.replace('EXACT_', '')), 3)} g`
+                    : weightFilter === 'UNDER_1KG' ? '< 1.0 g'
+                    : weightFilter === '1KG_TO_5KG' ? '1.0 – 5.0 g'
+                    : weightFilter === '5KG_TO_10KG' ? '5.0 – 10.0 g'
+                    : '> 10.0 g'}
                   <X className="w-3 h-3" />
                 </button>
               )}
@@ -371,7 +371,7 @@ export default function GoldInventoryPage() {
                   }}
                   className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#fed65b]/20 text-[#735c00] text-[11px] font-bold border border-[#fed65b]/50 hover:bg-[#fed65b]/30 transition-all"
                 >
-                  Weight Range: {minWeight || '0'} – {maxWeight || '∞'} kg
+                  Weight Range: {minWeight || '0'} – {maxWeight || '∞'} g
                   <X className="w-3 h-3" />
                 </button>
               )}
@@ -467,7 +467,7 @@ export default function GoldInventoryPage() {
 
                       {/* 6. Weight */}
                       <td className="px-6 py-3.5 font-mono font-bold text-right text-slate-900">
-                        {formatNumber(item.weight, 3)} <span className="text-[10px] font-normal text-slate-400">kg</span>
+                        {formatNumber(item.weight, 3)} <span className="text-[10px] font-normal text-slate-400">g</span>
                       </td>
 
                       {/* 7. Branch Location */}

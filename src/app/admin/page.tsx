@@ -379,7 +379,7 @@ export default function AdminPage() {
 
   // Totals for the 2 boxes
   const totalGoldWeight = goldItems.reduce((sum, item) => sum + (item.weight || 0), 0);
-  const totalGoldVal = goldItems.reduce((sum, item) => sum + (item.estValueUsd || (item.weight || 0) * 1000 * goldSpotPrice), 0);
+  const totalGoldVal = goldItems.reduce((sum, item) => sum + ((item.weight || 0) * goldSpotPrice), 0);
   const totalDiamondCarat = diamondItems.reduce((sum, item) => sum + (item.carat || 0), 0);
   const totalDiamondVal = diamondItems.reduce((sum, item) => sum + (item.tagPrice || 0), 0);
 
@@ -624,7 +624,7 @@ export default function AdminPage() {
                 {verificationReports.map(report => {
                   const isExpanded = expandedReportId === report.id;
                   const isComplete = report.pendingCount === 0 && report.totalItems > 0;
-                  const unit = report.category === 'Gold' ? 'kg' : 'ct';
+                  const unit = report.category === 'Gold' ? 'g' : 'ct';
 
                   return (
                     <div
@@ -1119,7 +1119,7 @@ export default function AdminPage() {
               {[
                 ...goldItems
                   .filter(i => i.holdInfo)
-                  .map(i => ({ ...i, category: 'gold' as const, detailText: `${formatNumber(i.weight, 3)} kg • ${i.brand}` })),
+                  .map(i => ({ ...i, category: 'gold' as const, detailText: `${formatNumber(i.weight, 3)} g • ${i.brand}` })),
                 ...diamondItems
                   .filter(i => i.holdInfo)
                   .map(i => ({ ...i, category: 'diamond' as const, detailText: `${formatNumber(i.carat, 2)} ct • ${i.clarity}/${i.colour}` }))
@@ -1332,7 +1332,7 @@ export default function AdminPage() {
                   </p>
                   <div className="flex items-center gap-3 mt-2 text-xs font-mono">
                     <span className="font-bold text-slate-800">
-                      {formatNumber(totalGoldWeight, 1)} kg Fine Gold
+                      {formatNumber(totalGoldWeight, 2)} g Fine Gold
                     </span>
                     <span className="text-slate-400">•</span>
                     <span className="text-emerald-700 font-semibold">
@@ -1599,7 +1599,7 @@ export default function AdminPage() {
                               {item.brand}
                             </td>
                             <td className="px-4 py-3 text-right font-bold text-slate-900">
-                              {formatNumber(item.weight, 3)} <span className="text-[10px] font-normal text-slate-400">kg</span>
+                              {formatNumber(item.weight, 3)} <span className="text-[10px] font-normal text-slate-400">g</span>
                             </td>
                             <td className="px-4 py-3 text-slate-600 max-w-[160px] truncate">
                               {item.branch}

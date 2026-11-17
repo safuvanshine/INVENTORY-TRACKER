@@ -173,7 +173,7 @@ function InventoryResultCard({ result }: { result: StructuredResult }) {
                     ) : (
                       <>
                         <td className="px-3 py-2 text-slate-300">{item.brand || '—'}</td>
-                        <td className="px-3 py-2 text-right text-slate-200">{item.weight != null ? `${formatNumber(item.weight, 3)} kg` : '—'}</td>
+                        <td className="px-3 py-2 text-right text-slate-200">{item.weight != null ? `${formatNumber(item.weight, 3)} g` : '—'}</td>
                         <td className="px-3 py-2 text-slate-300">{item.purity || '—'}</td>
                       </>
                     )}
@@ -527,7 +527,7 @@ export function AIAssistantModal() {
         structured: {
           type: 'inventory-result',
           summary: filtered.length > 0
-            ? `Found ${filtered.length} gold item${filtered.length > 1 ? 's' : ''} (${formatNumber(totalWeight, 3)} kg total) matching your query.`
+            ? `Found ${filtered.length} gold item${filtered.length > 1 ? 's' : ''} (${formatNumber(totalWeight, 3)} g total) matching your query.`
             : 'No gold items match the specified criteria.',
           totalFound: filtered.length,
           totalCarats: undefined,
@@ -549,7 +549,7 @@ export function AIAssistantModal() {
     // ── General summary ──
     const grandTotal = totalGoldValueUsd + totalDiamondValueUsd;
     return {
-      text: `📊 **RUBY Live Vault Summary:**\n\n• **Total Gold**: **${formatNumber(totalGoldWeightKg, 3)} kg** (${goldItems.length} lots) — **${formatUsd(totalGoldValueUsd)}**\n• **Gold Spot**: **$${goldSpotPrice.toFixed(2)}/g**\n• **Total Diamonds**: **${formatNumber(totalDiamondCarats, 2)} ct** (${diamondItems.length} stones) — **${formatUsd(totalDiamondValueUsd)}**\n• **Combined Vault Value**: **${formatUsd(grandTotal)}**\n• **Active Branches**: 14 Branches synced.\n\nAsk me about specific diamond clarity, shape, carat range, branch stock, or gold holdings!`
+      text: `📊 **RUBY Live Vault Summary:**\n\n• **Total Gold**: **${formatNumber(totalGoldWeightKg, 3)} g** (${goldItems.length} lots) — **${formatUsd(totalGoldValueUsd)}**\n• **Gold Spot**: **$${goldSpotPrice.toFixed(2)}/g**\n• **Total Diamonds**: **${formatNumber(totalDiamondCarats, 2)} ct** (${diamondItems.length} stones) — **${formatUsd(totalDiamondValueUsd)}**\n• **Combined Vault Value**: **${formatUsd(grandTotal)}**\n• **Active Branches**: 14 Branches synced.\n\nAsk me about specific diamond clarity, shape, carat range, branch stock, or gold holdings!`
     };
   }, [diamondItems, goldItems, totalGoldWeightKg, totalGoldValueUsd, totalDiamondCarats, totalDiamondValueUsd, goldSpotPrice]);
 

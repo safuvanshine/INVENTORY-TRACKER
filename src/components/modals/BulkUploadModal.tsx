@@ -595,7 +595,7 @@ export function BulkUploadModal({ isOpen, onClose, targetCategory = 'gold' }: Bu
                   </div>
                   <div>
                     <span className="text-slate-500 block text-[10px] uppercase font-bold">Total Gold Weight</span>
-                    <span className="font-bold text-amber-900 text-sm">{formatNumber(totalGoldWeightSum, 3)} kg</span>
+                    <span className="font-bold text-amber-900 text-sm">{formatNumber(totalGoldWeightSum, 3)} g</span>
                   </div>
                 </div>
               )}
@@ -728,7 +728,7 @@ export function BulkUploadModal({ isOpen, onClose, targetCategory = 'gold' }: Bu
                               <td className="px-3 py-2 text-slate-900 font-sans">{r.item}</td>
                               <td className="px-3 py-2 text-slate-500">{r.certificateNo}</td>
                               <td className="px-3 py-2 text-slate-700">{r.brand}</td>
-                              <td className="px-3 py-2 text-right font-bold text-slate-900">{formatNumber(r.weight, 3)} kg</td>
+                              <td className="px-3 py-2 text-right font-bold text-slate-900">{formatNumber(r.weight, 3)} g</td>
                               <td className="px-3 py-2 text-slate-600">{r.branch}</td>
                             </tr>
                           ))

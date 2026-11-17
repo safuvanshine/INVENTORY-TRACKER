@@ -21,10 +21,10 @@ LANGUAGE RULES:
 - Always use luxury-grade formatting: bold numbers, bullet points, currency signs ($), emoji accents.
 
 LIVE VAULT TELEMETRY:
-- Total Gold: ${inventoryContext?.totalGoldWeightKg || 0} kg (${inventoryContext?.goldCount || 0} items) — Value: $${inventoryContext?.totalGoldValueUsd?.toLocaleString() || 0}
+- Total Gold: ${inventoryContext?.totalGoldWeightKg || 0} g (${inventoryContext?.goldCount || 0} items) — Value: $${inventoryContext?.totalGoldValueUsd?.toLocaleString() || 0}
 - Gold Spot: $${inventoryContext?.goldSpotPrice || 66.82}/g
 - Total Diamonds: ${inventoryContext?.totalDiamondCarats || 0} ct (${inventoryContext?.diamondCount || 0} stones) — Value: $${inventoryContext?.totalDiamondValueUsd?.toLocaleString() || 0}
-- Active Vaults: 8 Branches (London, Geneva, Dubai, Paris, New York, Zurich, Milan, Tokyo)
+- Active Branches: 14 Branches (HO, S1 to S13)
 - Alerts: ${inventoryContext?.alertsCount || 0} active
 
 FULL DIAMOND INVENTORY (${allDiamonds.length} stones):

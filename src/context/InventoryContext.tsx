@@ -295,19 +295,19 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       itemTag: item.tagNo,
       category: 'Gold',
       branch: item.branch,
-      details: `Added ${item.item} (${item.weight} kg) - ${item.brand}`
+      details: `Added ${item.item} (${item.weight} g) - ${item.brand}`
     });
     setTickerMovements(prev => [
       {
         id: `t-${Date.now()}`,
         type: 'IN',
         tagNo: item.tagNo,
-        description: `${item.item} ${item.weight}kg (${item.branch})`,
+        description: `${item.item} ${item.weight}g (${item.branch})`,
         timeAgo: 'Just now'
       },
       ...prev.slice(0, 15)
     ]);
-    showToast('Gold Lot Deposited', `${item.tagNo} (${item.weight} kg) added to ${item.branch}`);
+    showToast('Gold Lot Deposited', `${item.tagNo} (${item.weight} g) added to ${item.branch}`);
   };
 
   const updateGoldItem = (id: string, updates: Partial<GoldItem>) => {
@@ -1064,7 +1064,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
 
   // Stats calculation
   const totalGoldWeightKg = goldItems.reduce((sum, item) => sum + (item.weight || 0), 0);
-  const totalGoldValueUsd = goldItems.reduce((sum, item) => sum + (item.estValueUsd || (item.weight || 0) * 1000 * goldSpotPrice), 0);
+  const totalGoldValueUsd = goldItems.reduce((sum, item) => sum + ((item.weight || 0) * goldSpotPrice), 0);
   const totalDiamondCarats = diamondItems.reduce((sum, item) => sum + (item.carat || 0), 0);
   const totalDiamondValueUsd = diamondItems.reduce((sum, item) => sum + (item.tagPrice || 0), 0);
   const activeVaultCount = new Set(goldItems.map(i => i.branch).concat(diamondItems.map(i => i.branch))).size;

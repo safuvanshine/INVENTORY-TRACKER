@@ -190,7 +190,7 @@ export function EditItemModal({ isOpen, onClose, item, itemCategory }: EditItemM
               </div>
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 font-mono mb-1">
-                  6. WEIGHT (kg)
+                  6. WEIGHT (g)
                 </label>
                 <input
                   type="number"
