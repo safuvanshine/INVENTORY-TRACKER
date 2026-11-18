@@ -12,10 +12,12 @@ import {
   X,
   Menu,
   Gem,
-  LogOut
+  LogOut,
+  PlayCircle
 } from 'lucide-react';
 import { useInventory } from '@/context/InventoryContext';
 import { useAuth } from '@/context/AuthContext';
+import { VideoGuideModal } from '@/components/modals/VideoGuideModal';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -34,6 +36,7 @@ export function TopHeader() {
 
   const [showAlertMenu, setShowAlertMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showVideoGuide, setShowVideoGuide] = useState(false);
 
   const unreadAlertsCount = alerts.filter(a => !a.read).length;
 
@@ -81,6 +84,18 @@ export function TopHeader() {
 
       {/* Center / Right controls */}
       <div className="flex items-center gap-3 md:gap-4 ml-auto">
+        {/* Video Tutorial / How to Use Guide Button */}
+        <button
+          type="button"
+          onClick={() => setShowVideoGuide(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 hover:bg-amber-100 text-[#735c00] border border-[#d4af37]/50 shadow-xs text-xs font-bold font-headline transition-all cursor-pointer"
+          title="Watch Video Tutorial on how to use this website"
+        >
+          <PlayCircle className="w-4 h-4 text-[#d4af37]" />
+          <span className="hidden sm:inline">How to Use</span>
+          <span className="sm:hidden">Video</span>
+        </button>
+
         {/* Ask RUBY AI Assistant Quick Trigger */}
         <button
           type="button"
@@ -295,6 +310,12 @@ export function TopHeader() {
           )}
         </div>
       )}
+
+      {/* Video Tutorial Modal */}
+      <VideoGuideModal
+        isOpen={showVideoGuide}
+        onClose={() => setShowVideoGuide(false)}
+      />
     </header>
   );
 }
