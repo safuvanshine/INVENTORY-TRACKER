@@ -11,7 +11,8 @@ import {
   Lock,
   ChevronRight,
   TrendingUp,
-  Sparkles
+  Sparkles,
+  ShoppingBag
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useInventory } from '@/context/InventoryContext';
@@ -32,6 +33,12 @@ const NAV_ITEMS: NavItem[] = [
     href: '/gold',
     icon: Layers,
     badge: '24K'
+  },
+  {
+    name: 'Gold Sale',
+    href: '/gold-sale',
+    icon: ShoppingBag,
+    badge: 'Sold'
   },
   {
     name: 'Diamond Inventory',

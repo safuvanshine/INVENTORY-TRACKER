@@ -271,6 +271,13 @@ export function TopHeader() {
             Gold Inventory
           </Link>
           <Link
+            href="/gold-sale"
+            onClick={() => setShowMobileMenu(false)}
+            className="py-3 border-b text-sm font-semibold text-emerald-700"
+          >
+            Gold Sale (Sold)
+          </Link>
+          <Link
             href="/diamonds"
             onClick={() => setShowMobileMenu(false)}
             className="py-3 border-b text-sm font-semibold text-slate-800"
