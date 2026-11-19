@@ -11,7 +11,8 @@ import {
   AuditLogEntry,
   UserAccount,
   TickerMovement,
-  BranchVerificationReport
+  BranchVerificationReport,
+  SoldGoldItem
 } from '@/lib/types';
 import {
   INITIAL_GOLD_ITEMS,
@@ -64,6 +65,13 @@ interface InventoryContextType {
   saveVerificationReport: (report: Omit<BranchVerificationReport, 'id' | 'date' | 'timestamp'>) => void;
   deleteVerificationReport: (id: string) => void;
 
+  // Sold Gold Items History (Date-wise)
+  soldGoldItems: SoldGoldItem[];
+  markGoldItemSold: (id: string, soldBy: string) => void;
+  deleteSoldGoldItem: (id: string) => void;
+  deleteSoldGoldByDate: (soldDate: string) => void;
+  clearAllSoldGold: () => void;
+
   // Reset & Restore Data
   resetDefaultData: () => void;
 
@@ -114,7 +122,8 @@ const STORAGE_KEYS = {
   AUDIT_LOGS: 'shine_audit_logs_v2',
   USERS: 'shine_users_v2',
   SPOT_PRICE: 'shine_gold_spot_price_v2',
-  VERIFICATIONS: 'shine_verification_reports_v1'
+  VERIFICATIONS: 'shine_verification_reports_v1',
+  SOLD_GOLD: 'shine_sold_gold_items_v1'
 };
 
 export function InventoryProvider({ children }: { children: React.ReactNode }) {
@@ -128,6 +137,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(INITIAL_AUDIT_LOGS);
   const [users, setUsers] = useState<UserAccount[]>(INITIAL_USERS);
   const [verificationReports, setVerificationReports] = useState<BranchVerificationReport[]>([]);
+  const [soldGoldItems, setSoldGoldItems] = useState<SoldGoldItem[]>([]);
   const [goldSpotPrice, setGoldSpotPrice] = useState<number>(GOLD_SPOT_PRICE_PER_GRAM);
   const [tickerMovements, setTickerMovements] = useState<TickerMovement[]>(INITIAL_TICKER_MOVEMENTS);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -153,6 +163,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
             if (serverData.auditLogs) setAuditLogs(serverData.auditLogs);
             if (serverData.users) setUsers(serverData.users);
             if (serverData.verificationReports) setVerificationReports(serverData.verificationReports);
+            if (serverData.soldGoldItems) setSoldGoldItems(serverData.soldGoldItems);
             if (serverData.goldSpotPrice) setGoldSpotPrice(serverData.goldSpotPrice);
             setIsLoaded(true);
 
@@ -220,6 +231,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem(STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(auditLogs));
       localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
       localStorage.setItem(STORAGE_KEYS.VERIFICATIONS, JSON.stringify(verificationReports));
+      localStorage.setItem(STORAGE_KEYS.SOLD_GOLD, JSON.stringify(soldGoldItems));
       localStorage.setItem(STORAGE_KEYS.SPOT_PRICE, goldSpotPrice.toString());
     } catch (e) {
       console.error('Failed to save to localStorage cache', e);
@@ -234,6 +246,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         auditLogs,
         users,
         verificationReports,
+        soldGoldItems,
         goldSpotPrice,
         vaultSecretKey: VAULT_SECRET_KEY,
         lastSynced: new Date().toISOString()
@@ -259,7 +272,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     }, 350);
 
     return () => clearTimeout(syncTimeout);
-  }, [goldItems, diamondItems, alerts, auditLogs, users, verificationReports, goldSpotPrice, isLoaded]);
+  }, [goldItems, diamondItems, alerts, auditLogs, users, verificationReports, soldGoldItems, goldSpotPrice, isLoaded]);
 
   const showToast = (title: string, message: string, type: 'success' | 'error' | 'info' = 'success') => {
     const id = Math.random().toString(36).substring(2, 9);
@@ -1062,6 +1075,88 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const markGoldItemSold = (id: string, soldBy: string) => {
+    const target = goldItems.find(i => i.id === id);
+    if (!target) return;
+
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const soldDate = `${yyyy}-${mm}-${dd}`;
+    const soldDateLabel = now.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+    const soldTime = now.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    const soldEntry: SoldGoldItem = {
+      id: `sold-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      tagNo: target.tagNo,
+      item: target.item,
+      certificateNo: target.certificateNo || '',
+      description: target.description || '',
+      brand: target.brand || '',
+      weight: target.weight || 0,
+      branch: target.branch,
+      purity: target.purity,
+      soldBy,
+      soldDate,
+      soldDateLabel,
+      soldTime,
+      soldAtIso: now.toISOString()
+    };
+
+    // Remove from active gold inventory and add to sold history
+    setGoldItems(prev => prev.filter(i => i.id !== id));
+    setSoldGoldItems(prev => [soldEntry, ...prev]);
+
+    setAlerts(prev => [
+      {
+        id: `alt-sold-${Date.now()}`,
+        title: `Gold Sold: ${target.tagNo} (${target.branch})`,
+        description: `Tag ${target.tagNo} (${target.item} • ${target.weight} g) marked SOLD in ${target.branch} by ${soldBy} on ${soldDateLabel}.`,
+        category: 'Gold',
+        priority: 'Info',
+        timestamp: `${soldDateLabel} ${soldTime}`,
+        read: false,
+        actionLabel: 'View Sold List'
+      },
+      ...prev
+    ]);
+
+    addAuditLog({
+      user: soldBy,
+      action: 'Gold Item Marked SOLD',
+      itemTag: target.tagNo,
+      category: 'Gold',
+      branch: target.branch,
+      details: `Sold ${target.item} (${target.weight} g) from ${target.branch} on ${soldDateLabel}`
+    });
+
+    showToast('Item Marked SOLD', `Tag ${target.tagNo} (${target.weight} g) recorded as SOLD in ${target.branch}.`);
+  };
+
+  const deleteSoldGoldItem = (id: string) => {
+    setSoldGoldItems(prev => prev.filter(i => i.id !== id));
+    showToast('Sold Record Deleted', 'Sold item record removed.', 'info');
+  };
+
+  const deleteSoldGoldByDate = (soldDate: string) => {
+    const count = soldGoldItems.filter(i => i.soldDate === soldDate).length;
+    setSoldGoldItems(prev => prev.filter(i => i.soldDate !== soldDate));
+    showToast('Date Sold Data Deleted', `Deleted ${count} sold gold records for ${soldDate}.`, 'info');
+  };
+
+  const clearAllSoldGold = () => {
+    setSoldGoldItems([]);
+    showToast('Sold History Cleared', 'All sold gold item records have been deleted.', 'info');
+  };
+
   // Stats calculation
   const totalGoldWeightKg = goldItems.reduce((sum, item) => sum + (item.weight || 0), 0);
   const totalGoldValueUsd = goldItems.reduce((sum, item) => sum + ((item.weight || 0) * goldSpotPrice), 0);
@@ -1094,6 +1189,11 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         verificationReports,
         saveVerificationReport,
         deleteVerificationReport,
+        soldGoldItems,
+        markGoldItemSold,
+        deleteSoldGoldItem,
+        deleteSoldGoldByDate,
+        clearAllSoldGold,
         resetDefaultData,
         branches,
         selectedBranch,

@@ -204,3 +204,50 @@ export function downloadExcelDiamondTemplate() {
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Diamond Inventory');
   XLSX.writeFile(workbook, 'SHINE_DIAMOND_TEMPLATE.xlsx');
 }
+
+export function exportSoldGoldToExcel(
+  items: {
+    soldDateLabel: string;
+    soldTime: string;
+    tagNo: string;
+    item: string;
+    certificateNo: string;
+    description: string;
+    brand: string;
+    weight: number;
+    branch: string;
+    soldBy: string;
+  }[],
+  filename = 'SHINE_SOLD_GOLD_REPORT.xlsx'
+) {
+  const data = items.map(i => ({
+    'SOLD DATE': i.soldDateLabel,
+    'SOLD TIME': i.soldTime,
+    'TAG NUMBER': i.tagNo,
+    'ITEM': i.item,
+    'CERTIFICATE NUMBER': i.certificateNo || '',
+    'DESCRIPTION': i.description || '',
+    'BRAND': i.brand || '',
+    'WEIGHT (g)': i.weight,
+    'BRANCH': i.branch,
+    'SOLD BY': i.soldBy
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  worksheet['!cols'] = [
+    { wch: 15 }, // SOLD DATE
+    { wch: 12 }, // SOLD TIME
+    { wch: 16 }, // TAG NUMBER
+    { wch: 24 }, // ITEM
+    { wch: 22 }, // CERTIFICATE NUMBER
+    { wch: 36 }, // DESCRIPTION
+    { wch: 18 }, // BRAND
+    { wch: 14 }, // WEIGHT (g)
+    { wch: 12 }, // BRANCH
+    { wch: 18 }  // SOLD BY
+  ];
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Sold Gold Items');
+  XLSX.writeFile(workbook, filename);
+}

@@ -21,7 +21,8 @@ import {
   UploadCloud,
   Lock,
   ArrowRightLeft,
-  Check
+  Check,
+  ShoppingBag
 } from 'lucide-react';
 import { BulkUploadModal } from '@/components/modals/BulkUploadModal';
 import { HoldItemModal } from '@/components/modals/HoldItemModal';
@@ -35,7 +36,8 @@ export default function GoldInventoryPage() {
     goldSpotPrice,
     totalGoldWeightKg,
     acceptTransfer,
-    cancelTransfer
+    cancelTransfer,
+    markGoldItemSold
   } = useInventory();
   const { isAdmin, currentUser } = useAuth();
 
@@ -55,6 +57,20 @@ export default function GoldInventoryPage() {
     branch: string;
     category: 'gold' | 'diamond';
   } | null>(null);
+  const [sellingItem, setSellingItem] = useState<{
+    id: string;
+    tagNo: string;
+    item: string;
+    weight: number;
+    branch: string;
+  } | null>(null);
+
+  // Strict Branch Check: S1 user can ONLY sell S1 items, never S2 or other branches!
+  const canSellItem = (itemBranch: string) => {
+    if (isAdmin) return true;
+    if (!currentUser?.branch) return false;
+    return currentUser.branch.trim().toUpperCase() === (itemBranch || '').trim().toUpperCase();
+  };
 
   // Local Filters
   const [selectedBrand, setSelectedBrand] = useState<string>('ALL');
@@ -509,12 +525,50 @@ export default function GoldInventoryPage() {
                             </button>
                           </div>
                         ) : item.holdInfo ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-100 border border-amber-300 text-amber-900 text-[11px] font-mono font-bold">
-                            <Lock className="w-3 h-3 text-amber-700" />
-                            ON HOLD • {item.holdInfo.branch} ({item.holdInfo.days}D)
-                          </span>
+                          <div className="inline-flex items-center justify-end gap-1.5 flex-wrap">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-100 border border-amber-300 text-amber-900 text-[11px] font-mono font-bold">
+                              <Lock className="w-3 h-3 text-amber-700" />
+                              ON HOLD • {item.holdInfo.branch} ({item.holdInfo.days}D)
+                            </span>
+                            {canSellItem(item.branch) && (
+                              <button
+                                onClick={() =>
+                                  setSellingItem({
+                                    id: item.id,
+                                    tagNo: item.tagNo,
+                                    item: item.item,
+                                    weight: item.weight,
+                                    branch: item.branch
+                                  })
+                                }
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-mono font-bold shadow-xs transition-all cursor-pointer"
+                                title={`Mark ${item.tagNo} as Sold in ${item.branch}`}
+                              >
+                                <ShoppingBag className="w-3 h-3" />
+                                Sold
+                              </button>
+                            )}
+                          </div>
                         ) : (
                           <div className="inline-flex items-center justify-end gap-1.5">
+                            {canSellItem(item.branch) && (
+                              <button
+                                onClick={() =>
+                                  setSellingItem({
+                                    id: item.id,
+                                    tagNo: item.tagNo,
+                                    item: item.item,
+                                    weight: item.weight,
+                                    branch: item.branch
+                                  })
+                                }
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-mono font-bold shadow-xs transition-all cursor-pointer"
+                                title={`Mark ${item.tagNo} as Sold in ${item.branch}`}
+                              >
+                                <ShoppingBag className="w-3 h-3" />
+                                Sold
+                              </button>
+                            )}
                             <button
                               onClick={() =>
                                 setHoldingItem({
@@ -616,6 +670,63 @@ export default function GoldInventoryPage() {
         onClose={() => setTransferringItem(null)}
         item={transferringItem}
       />
+
+      {/* Confirm Sold Modal */}
+      {sellingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <ShoppingBag className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 font-headline">Confirm Gold Item Sold</h3>
+                <p className="text-xs text-slate-500 font-mono">This will move the item to Admin Sold History</p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5 text-xs font-mono">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Tag Number:</span>
+                <span className="font-bold text-slate-900">{sellingItem.tagNo}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Item:</span>
+                <span className="font-bold text-slate-900">{sellingItem.item}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Weight:</span>
+                <span className="font-bold text-slate-900">{formatNumber(sellingItem.weight, 3)} g</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Branch:</span>
+                <span className="font-bold text-emerald-700">{sellingItem.branch}</span>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2.5 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setSellingItem(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  markGoldItemSold(sellingItem.id, currentUser?.name || sellingItem.branch);
+                  setSellingItem(null);
+                }}
+                className="px-5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center gap-1.5 cursor-pointer"
+              >
+                <ShoppingBag className="w-3.5 h-3.5" />
+                Confirm Sold
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

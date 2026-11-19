@@ -132,3 +132,20 @@ export interface BranchVerificationReport {
   verifiedTags: { tagNo: string; item: string; weight: number }[];
   pendingTags: { tagNo: string; item: string; weight: number }[];
 }
+
+export interface SoldGoldItem {
+  id: string;
+  tagNo: string;
+  item: string;
+  certificateNo: string;
+  description: string;
+  brand: string;
+  weight: number;
+  branch: string;
+  purity?: GoldPurity;
+  soldBy: string;
+  soldDate: string;      // YYYY-MM-DD
+  soldDateLabel: string; // e.g. "19 Nov 2026"
+  soldTime: string;      // e.g. "05:40 PM"
+  soldAtIso: string;
+}
