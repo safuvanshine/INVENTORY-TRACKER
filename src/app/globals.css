@@ -140,3 +140,82 @@ h1, h2, h3, h4, .font-headline {
 .mic-wave-bar:nth-child(3) { animation-delay: 0.3s; }
 .mic-wave-bar:nth-child(4) { animation-delay: 0.15s; }
 
+/* Moving Red Light Border Animation for Incoming Branch Transfers */
+@keyframes spin-red-light {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.moving-red-light-box {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.65rem;
+  padding: 2.5px;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.55), 0 0 6px rgba(220, 38, 38, 0.45);
+}
+
+.moving-red-light-box::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 300%;
+  height: 300%;
+  background: conic-gradient(
+    transparent 0deg,
+    transparent 190deg,
+    rgba(239, 68, 68, 0.35) 230deg,
+    #ef4444 280deg,
+    #ff1e1e 325deg,
+    #ffffff 348deg,
+    #ef4444 360deg
+  );
+  animation: spin-red-light 1.6s linear infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.moving-red-light-inner {
+  position: relative;
+  z-index: 1;
+  border-radius: calc(0.65rem - 2.5px);
+}
+
+.moving-red-light-chip {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.375rem;
+  padding: 2px;
+  display: inline-flex;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);
+}
+
+.moving-red-light-chip::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 320%;
+  height: 320%;
+  background: conic-gradient(
+    transparent 0deg,
+    transparent 180deg,
+    #ef4444 270deg,
+    #ffffff 345deg,
+    #ef4444 360deg
+  );
+  animation: spin-red-light 1.4s linear infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.moving-red-light-chip-inner {
+  position: relative;
+  z-index: 1;
+  border-radius: calc(0.375rem - 2px);
+}
+

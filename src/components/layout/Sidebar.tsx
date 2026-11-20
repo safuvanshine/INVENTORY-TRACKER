@@ -62,10 +62,23 @@ const NAV_ITEMS: NavItem[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { totalGoldWeightKg, totalDiamondCarats } = useInventory();
-  const { isAdmin } = useAuth();
+  const { totalGoldWeightKg, totalDiamondCarats, goldItems, diamondItems } = useInventory();
+  const { isAdmin, currentUser } = useAuth();
 
   const visibleNavItems = NAV_ITEMS.filter(item => item.href !== '/admin' || isAdmin);
+
+  // Count incoming transfers waiting for the logged-in user's branch (or any branch for Admin)
+  const incomingTransfersCount = React.useMemo(() => {
+    const userBranch = (currentUser?.branch || '').trim().toUpperCase();
+    const matchTransfer = (toBranch?: string) => {
+      if (!toBranch) return false;
+      if (isAdmin) return true;
+      return toBranch.trim().toUpperCase() === userBranch;
+    };
+    const goldIncoming = goldItems.filter(i => i.transferInfo && matchTransfer(i.transferInfo.toBranch)).length;
+    const diaIncoming = diamondItems.filter(i => i.transferInfo && matchTransfer(i.transferInfo.toBranch)).length;
+    return goldIncoming + diaIncoming;
+  }, [goldItems, diamondItems, currentUser, isAdmin]);
 
   return (
     <aside className="hidden md:flex flex-col h-screen w-[240px] fixed left-0 top-0 bg-[#f7f9fb] border-r border-slate-200/80 z-50 select-none">
@@ -93,14 +106,17 @@ export function Sidebar() {
         {visibleNavItems.map(item => {
           const isActive = pathname === item.href || (pathname === '/' && item.href === '/gold');
           const Icon = item.icon;
+          const isBranchAlert = item.href === '/branches' && incomingTransfersCount > 0;
 
-          return (
+          const linkContent = (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
                 'flex items-center justify-between px-3.5 py-3 rounded-lg text-sm font-medium transition-all duration-200 group relative',
-                isActive
+                isBranchAlert
+                  ? 'moving-red-light-inner bg-white text-red-700 font-bold'
+                  : isActive
                   ? 'bg-white text-[#735c00] font-bold border-l-4 border-[#d4af37] shadow-sm'
                   : 'text-slate-600 hover:bg-slate-200/60 hover:text-slate-900'
               )}
@@ -109,26 +125,46 @@ export function Sidebar() {
                 <Icon
                   className={cn(
                     'w-4 h-4 transition-colors',
-                    isActive ? 'text-[#d4af37]' : 'text-slate-500 group-hover:text-slate-800'
+                    isBranchAlert
+                      ? 'text-red-600 animate-pulse'
+                      : isActive
+                      ? 'text-[#d4af37]'
+                      : 'text-slate-500 group-hover:text-slate-800'
                   )}
                 />
                 <span className="text-[13px]">{item.name}</span>
               </div>
 
-              {item.badge && (
-                <span
-                  className={cn(
-                    'text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold tracking-wider uppercase',
-                    isActive
-                      ? 'bg-[#fed65b]/20 text-[#735c00]'
-                      : 'bg-slate-200/80 text-slate-500 group-hover:bg-slate-300/80'
-                  )}
-                >
-                  {item.badge}
+              {isBranchAlert ? (
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-extrabold tracking-wider uppercase bg-red-600 text-white animate-pulse shadow-xs">
+                  {incomingTransfersCount} NEW
                 </span>
+              ) : (
+                item.badge && (
+                  <span
+                    className={cn(
+                      'text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold tracking-wider uppercase',
+                      isActive
+                        ? 'bg-[#fed65b]/20 text-[#735c00]'
+                        : 'bg-slate-200/80 text-slate-500 group-hover:bg-slate-300/80'
+                    )}
+                  >
+                    {item.badge}
+                  </span>
+                )
               )}
             </Link>
           );
+
+          if (isBranchAlert) {
+            return (
+              <div key={item.href} className="moving-red-light-box my-0.5">
+                {linkContent}
+              </div>
+            );
+          }
+
+          return linkContent;
         })}
 
         {/* Ask RUBY AI Assistant Quick Trigger Banner */}

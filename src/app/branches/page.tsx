@@ -509,16 +509,17 @@ export default function BranchesPage() {
           if (allIncoming.length === 0) return null;
 
           return (
-            <section className="bg-blue-50/90 border-2 border-blue-400 rounded-2xl p-5 shadow-sm space-y-3.5 animate-in fade-in">
+            <div className="moving-red-light-box rounded-2xl">
+            <section className="moving-red-light-inner bg-red-50/95 rounded-2xl p-5 shadow-sm space-y-3.5 animate-in fade-in">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold">
+                  <div className="w-9 h-9 rounded-xl bg-red-600 text-white flex items-center justify-center font-bold animate-pulse">
                     <ArrowRight className="w-5 h-5" />
                   </div>
                   <div>
                     <h2 className="text-sm sm:text-base font-bold text-slate-900 font-headline flex items-center gap-2">
                       <span>Incoming Stock Transfers Waiting for Acceptance</span>
-                      <span className="px-2 py-0.5 rounded-full bg-blue-600 text-white text-xs font-mono">
+                      <span className="px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-mono animate-pulse">
                         {allIncoming.length} Pending
                       </span>
                     </h2>
@@ -582,6 +583,7 @@ export default function BranchesPage() {
                 })}
               </div>
             </section>
+            </div>
           );
         })()}
 
@@ -656,24 +658,42 @@ export default function BranchesPage() {
             </div>
 
             {/* Quick Switch Branch Buttons */}
-            <div className="flex items-center gap-1 ml-auto flex-wrap">
+            <div className="flex items-center gap-1.5 ml-auto flex-wrap">
               <span className="text-[11px] font-mono text-slate-400 mr-1 hidden sm:inline">Quick Branch:</span>
-              {['ALL', ...STANDARD_BRANCH_CODES].map(code => (
-                <button
-                  key={code}
-                  onClick={() => {
-                    setSelectedBranchKey(code);
-                    setTempBranchKey(code);
-                  }}
-                  className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold transition-all ${
-                    activeBranchCode === code || (code === 'ALL' && selectedBranchKey === 'ALL')
-                      ? 'bg-[#d4af37] text-slate-950 shadow-sm'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
-                  }`}
-                >
-                  {code}
-                </button>
-              ))}
+              {['ALL', ...STANDARD_BRANCH_CODES].map(code => {
+                const hasIncomingForCode =
+                  code !== 'ALL' &&
+                  (goldItems.some(i => i.transferInfo?.toBranch.toUpperCase() === code) ||
+                    diamondItems.some(i => i.transferInfo?.toBranch.toUpperCase() === code));
+
+                const btn = (
+                  <button
+                    key={code}
+                    onClick={() => {
+                      setSelectedBranchKey(code);
+                      setTempBranchKey(code);
+                    }}
+                    className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold transition-all cursor-pointer ${
+                      hasIncomingForCode
+                        ? 'moving-red-light-chip-inner bg-red-600 text-white'
+                        : activeBranchCode === code || (code === 'ALL' && selectedBranchKey === 'ALL')
+                        ? 'bg-[#d4af37] text-slate-950 shadow-sm'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
+                    }`}
+                  >
+                    {code}
+                  </button>
+                );
+
+                if (hasIncomingForCode) {
+                  return (
+                    <span key={code} className="moving-red-light-chip" title={`Incoming transfer waiting for ${code}`}>
+                      {btn}
+                    </span>
+                  );
+                }
+                return btn;
+              })}
             </div>
           </div>
         </div>

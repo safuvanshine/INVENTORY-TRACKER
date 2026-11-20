@@ -28,7 +28,9 @@ export function TopHeader() {
     branches,
     alerts,
     dismissAlert,
-    goldSpotPrice
+    goldSpotPrice,
+    goldItems,
+    diamondItems
   } = useInventory();
   const { currentUser, logout, isAdmin } = useAuth();
 
@@ -37,15 +39,34 @@ export function TopHeader() {
 
   const unreadAlertsCount = alerts.filter(a => !a.read).length;
 
+  const incomingTransfersCount = React.useMemo(() => {
+    const userBranch = (currentUser?.branch || '').trim().toUpperCase();
+    const matchTransfer = (toBranch?: string) => {
+      if (!toBranch) return false;
+      if (isAdmin) return true;
+      return toBranch.trim().toUpperCase() === userBranch;
+    };
+    const g = goldItems.filter(i => i.transferInfo && matchTransfer(i.transferInfo.toBranch)).length;
+    const d = diamondItems.filter(i => i.transferInfo && matchTransfer(i.transferInfo.toBranch)).length;
+    return g + d;
+  }, [goldItems, diamondItems, currentUser, isAdmin]);
+
   return (
     <header className="h-16 w-full sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm flex items-center justify-between px-6">
       {/* Mobile Hamburger toggle */}
       <div className="flex items-center gap-3 md:hidden">
         <button
           onClick={() => setShowMobileMenu(!showMobileMenu)}
-          className="p-2 rounded-lg text-slate-600 hover:bg-slate-100"
+          className={`p-2 rounded-lg text-slate-600 hover:bg-slate-100 relative ${
+            incomingTransfersCount > 0 ? 'ring-2 ring-red-500 bg-red-50 text-red-700' : ''
+          }`}
         >
           <Menu className="w-5 h-5" />
+          {incomingTransfersCount > 0 && (
+            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-red-600 text-white text-[9px] font-bold flex items-center justify-center animate-pulse">
+              {incomingTransfersCount}
+            </span>
+          )}
         </button>
         <Link href="/gold" className="relative w-32 h-10 flex items-center">
           <Image
@@ -284,13 +305,28 @@ export function TopHeader() {
           >
             Diamond Inventory
           </Link>
-          <Link
-            href="/branches"
-            onClick={() => setShowMobileMenu(false)}
-            className="py-3 border-b text-sm font-semibold text-slate-800"
-          >
-            Branch Status
-          </Link>
+          {incomingTransfersCount > 0 ? (
+            <div className="moving-red-light-box my-1">
+              <Link
+                href="/branches"
+                onClick={() => setShowMobileMenu(false)}
+                className="moving-red-light-inner bg-white px-3 py-3 flex items-center justify-between text-sm font-bold text-red-700"
+              >
+                <span>Branch Status</span>
+                <span className="px-2 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-mono font-bold animate-pulse">
+                  {incomingTransfersCount} INCOMING
+                </span>
+              </Link>
+            </div>
+          ) : (
+            <Link
+              href="/branches"
+              onClick={() => setShowMobileMenu(false)}
+              className="py-3 border-b text-sm font-semibold text-slate-800"
+            >
+              Branch Status
+            </Link>
+          )}
           {isAdmin && (
             <Link
               href="/admin"
