@@ -116,7 +116,7 @@ export default function BranchesPage() {
     acceptTransfer,
     cancelTransfer
   } = useInventory();
-  const { currentUser } = useAuth();
+  const { currentUser, isAdmin } = useAuth();
   const [justSavedReport, setJustSavedReport] = useState(false);
 
   // Selection states
@@ -127,7 +127,7 @@ export default function BranchesPage() {
   // Auditor / Verifier Name state
   const [verifierName, setVerifierName] = useState<string>('Safuwan');
 
-  // Load saved verifier name from localStorage or currentUser on mount
+  // Load saved verifier name and lock branch strictly for non-admin branch users
   useEffect(() => {
     try {
       const savedName = localStorage.getItem('shine_audit_verifier_name');
@@ -136,7 +136,7 @@ export default function BranchesPage() {
       } else if (currentUser?.name) {
         setVerifierName(currentUser.name);
       }
-      if (currentUser?.branch && STANDARD_BRANCH_CODES.includes(currentUser.branch)) {
+      if (currentUser?.branch) {
         setSelectedBranchKey(currentUser.branch);
         setTempBranchKey(currentUser.branch);
         setAppliedCriteria(prev => ({ ...prev, branch: currentUser.branch }));
@@ -144,7 +144,7 @@ export default function BranchesPage() {
     } catch {
       // Ignore
     }
-  }, [currentUser]);
+  }, [currentUser, isAdmin]);
 
   const handleVerifierChange = (name: string) => {
     setVerifierName(name);
@@ -310,16 +310,18 @@ export default function BranchesPage() {
 
   // Apply Selection Handler
   const handleApplySelection = () => {
-    setSelectedBranchKey(tempBranchKey);
+    const targetBranch = !isAdmin && currentUser?.branch ? currentUser.branch : tempBranchKey;
+    setSelectedBranchKey(targetBranch);
+    setTempBranchKey(targetBranch);
     setAppliedCriteria({
-      branch: tempBranchKey,
+      branch: targetBranch,
       category: activeCategory
     });
     setIsWorkspaceActive(true);
     setScanFeedback(null);
     showToast(
       'Stock Verification Activated',
-      `Ready to verify ${activeCategory.toUpperCase()} stock for Branch (${extractBranchCode(tempBranchKey)}).`,
+      `Ready to verify ${activeCategory.toUpperCase()} stock for Branch (${extractBranchCode(targetBranch)}).`,
       'info'
     );
     // Auto-focus scanner input
@@ -610,16 +612,18 @@ export default function BranchesPage() {
 
             {/* Quick Actions / Filter Control */}
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  setSelectedBranchKey('ALL');
-                  setTempBranchKey('ALL');
-                }}
-                className="px-3.5 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold font-mono text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 shadow-sm transition-all"
-              >
-                <Filter className="w-3.5 h-3.5 text-slate-500" />
-                <span>Filter</span>
-              </button>
+              {isAdmin && (
+                <button
+                  onClick={() => {
+                    setSelectedBranchKey('ALL');
+                    setTempBranchKey('ALL');
+                  }}
+                  className="px-3.5 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold font-mono text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 shadow-sm transition-all"
+                >
+                  <Filter className="w-3.5 h-3.5 text-slate-500" />
+                  <span>All Branches</span>
+                </button>
+              )}
               <button
                 onClick={() => setSoundEnabled(!soundEnabled)}
                 title={soundEnabled ? 'Mute Scan Sound' : 'Enable Scan Sound'}
@@ -634,17 +638,19 @@ export default function BranchesPage() {
           <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-slate-100">
             {/* Active Branch Chip */}
             <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#0f172a] text-white rounded-md text-xs font-mono font-bold shadow-sm">
-              <span>Branch:{activeBranchCode}</span>
-              <button
-                onClick={() => {
-                  setSelectedBranchKey('ALL');
-                  setTempBranchKey('ALL');
-                }}
-                className="hover:text-red-400 transition-colors ml-0.5"
-                title="Reset to ALL Branches"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
+              <span>Branch: {activeBranchCode}</span>
+              {isAdmin && (
+                <button
+                  onClick={() => {
+                    setSelectedBranchKey('ALL');
+                    setTempBranchKey('ALL');
+                  }}
+                  className="hover:text-red-400 transition-colors ml-0.5"
+                  title="Reset to ALL Branches"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
 
             {/* Status Chip */}
@@ -657,44 +663,51 @@ export default function BranchesPage() {
               <span>CATEGORY: {activeCategory.toUpperCase()}</span>
             </div>
 
-            {/* Quick Switch Branch Buttons */}
-            <div className="flex items-center gap-1.5 ml-auto flex-wrap">
-              <span className="text-[11px] font-mono text-slate-400 mr-1 hidden sm:inline">Quick Branch:</span>
-              {['ALL', ...STANDARD_BRANCH_CODES].map(code => {
-                const hasIncomingForCode =
-                  code !== 'ALL' &&
-                  (goldItems.some(i => i.transferInfo?.toBranch.toUpperCase() === code) ||
-                    diamondItems.some(i => i.transferInfo?.toBranch.toUpperCase() === code));
+            {/* Quick Switch Branch Buttons (Admin Only; Staff locked to own branch) */}
+            {isAdmin ? (
+              <div className="flex items-center gap-1.5 ml-auto flex-wrap">
+                <span className="text-[11px] font-mono text-slate-400 mr-1 hidden sm:inline">Quick Branch:</span>
+                {['ALL', ...STANDARD_BRANCH_CODES].map(code => {
+                  const hasIncomingForCode =
+                    code !== 'ALL' &&
+                    (goldItems.some(i => i.transferInfo?.toBranch.toUpperCase() === code) ||
+                      diamondItems.some(i => i.transferInfo?.toBranch.toUpperCase() === code));
 
-                const btn = (
-                  <button
-                    key={code}
-                    onClick={() => {
-                      setSelectedBranchKey(code);
-                      setTempBranchKey(code);
-                    }}
-                    className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold transition-all cursor-pointer ${
-                      hasIncomingForCode
-                        ? 'moving-red-light-chip-inner bg-white text-slate-900'
-                        : activeBranchCode === code || (code === 'ALL' && selectedBranchKey === 'ALL')
-                        ? 'bg-[#d4af37] text-slate-950 shadow-sm'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
-                    }`}
-                  >
-                    {code}
-                  </button>
-                );
-
-                if (hasIncomingForCode) {
-                  return (
-                    <span key={code} className="moving-red-light-chip" title={`Incoming transfer waiting for ${code}`}>
-                      {btn}
-                    </span>
+                  const btn = (
+                    <button
+                      key={code}
+                      onClick={() => {
+                        setSelectedBranchKey(code);
+                        setTempBranchKey(code);
+                      }}
+                      className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold transition-all cursor-pointer ${
+                        hasIncomingForCode
+                          ? 'moving-red-light-chip-inner bg-white text-slate-900'
+                          : activeBranchCode === code || (code === 'ALL' && selectedBranchKey === 'ALL')
+                          ? 'bg-[#d4af37] text-slate-950 shadow-sm'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
+                      }`}
+                    >
+                      {code}
+                    </button>
                   );
-                }
-                return btn;
-              })}
-            </div>
+
+                  if (hasIncomingForCode) {
+                    return (
+                      <span key={code} className="moving-red-light-chip" title={`Incoming transfer waiting for ${code}`}>
+                        {btn}
+                      </span>
+                    );
+                  }
+                  return btn;
+                })}
+              </div>
+            ) : (
+              <div className="ml-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-mono font-bold">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Your Branch Only: {activeBranchCode}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -709,50 +722,61 @@ export default function BranchesPage() {
                 <span>Showing {activeBranchLabel}</span>
               </div>
               <p className="text-xs text-slate-500 mt-1.5 font-sans">
-                Select a branch and category to view current inventory levels.
+                {isAdmin
+                  ? 'Select a branch and category to view current inventory levels.'
+                  : `Showing stock strictly for your assigned branch (${activeBranchCode}). Select Gold or Diamond below to verify.`}
               </p>
             </div>
 
-            {/* Choose Your Branch Form Box (Clean without mock city/vault names) */}
+            {/* Choose Your Branch Form Box (Editable only for Admin; Locked for Branch Users) */}
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm w-full lg:w-96">
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 font-mono block">
-                  Choose Your Branch
+                  {isAdmin ? 'Choose Your Branch' : 'Assigned Branch'}
                 </label>
                 <span className="text-[10px] font-mono text-slate-400">
-                  {dataBranches.length} from Excel / System
+                  {isAdmin ? `${dataBranches.length} from Excel / System` : 'Branch Locked'}
                 </span>
               </div>
 
               <div className="relative mb-2.5">
-                <select
-                  value={tempBranchKey}
-                  onChange={e => {
-                    setTempBranchKey(e.target.value);
-                    setSelectedBranchKey(e.target.value);
-                  }}
-                  className="w-full appearance-none bg-white border border-slate-300 rounded-lg px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 cursor-pointer shadow-sm"
-                >
-                  <option value="ALL">🌐 All Branches</option>
+                {isAdmin ? (
+                  <select
+                    value={tempBranchKey}
+                    onChange={e => {
+                      setTempBranchKey(e.target.value);
+                      setSelectedBranchKey(e.target.value);
+                    }}
+                    className="w-full appearance-none bg-white border border-slate-300 rounded-lg px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 cursor-pointer shadow-sm"
+                  >
+                    <option value="ALL">🌐 All Branches</option>
 
-                  <optgroup label="── Branches (S1 – S8) ──">
-                    {STANDARD_BRANCH_CODES.map(code => (
-                      <option key={code} value={code}>
-                        Branch ({code})
-                      </option>
-                    ))}
-                  </optgroup>
-
-                  {customBranches.length > 0 && (
-                    <optgroup label="── Other Branches from Excel ──">
-                      {customBranches.map(branchName => (
-                        <option key={branchName} value={branchName}>
-                          Branch ({branchName})
+                    <optgroup label="── Branches (HO, S1 – S13) ──">
+                      {STANDARD_BRANCH_CODES.map(code => (
+                        <option key={code} value={code}>
+                          Branch ({code})
                         </option>
                       ))}
                     </optgroup>
-                  )}
-                </select>
+
+                    {customBranches.length > 0 && (
+                      <optgroup label="── Other Branches from Excel ──">
+                        {customBranches.map(branchName => (
+                          <option key={branchName} value={branchName}>
+                            Branch ({branchName})
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </select>
+                ) : (
+                  <div className="w-full bg-white border border-slate-300 rounded-lg px-3.5 py-2.5 text-xs font-bold font-mono text-slate-900 flex items-center justify-between shadow-xs">
+                    <span>Branch ({activeBranchCode})</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-slate-900 text-[#fed65b] uppercase">
+                      Active
+                    </span>
+                  </div>
+                )}
               </div>
 
               <button
