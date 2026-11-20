@@ -13,7 +13,6 @@ import {
   Volume2,
   VolumeX,
   Key,
-  RefreshCw,
   CheckCircle2,
   AlertCircle,
   Maximize2,
@@ -22,7 +21,7 @@ import {
   TableProperties,
   ChevronDown,
   ChevronUp,
-  Sparkles
+  Square
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -41,13 +40,14 @@ interface InventoryResultItem {
   brand?: string;
   description?: string;
 }
-interface BranchBreakdown { branch: string; count: number; carats?: number; weightKg?: number; }
+interface BranchBreakdown { branch: string; count: number; carats?: number; weightGrams?: number; }
 
 interface StructuredResult {
   type: 'inventory-result';
   summary: string;
   totalFound: number;
   totalCarats?: number;
+  totalGrams?: number;
   totalValue?: number;
   items: InventoryResultItem[];
   branchBreakdown?: BranchBreakdown[];
@@ -65,6 +65,8 @@ interface ChatMessage {
   isVoice?: boolean;
 }
 
+type VoiceLang = 'en-IN' | 'ml-IN' | 'hi-IN';
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function exportResultsCSV(items: InventoryResultItem[], filename: string) {
@@ -81,15 +83,40 @@ function exportResultsCSV(items: InventoryResultItem[], filename: string) {
   URL.revokeObjectURL(url);
 }
 
-// Format markdown-lite **bold** for display
 function renderMarkdown(text: string) {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
   return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>;
+      return <strong key={i} className="font-semibold text-white">{part.slice(2, -2)}</strong>;
     }
     return <span key={i}>{part}</span>;
   });
+}
+
+// Strict word-boundary branch extractor (prevents "show"/"hold" matching "HO" and "S12" matching "S1")
+function extractRequestedBranch(q: string): string | null {
+  const orderedCodes = ['s13', 's12', 's11', 's10', 's9', 's8', 's7', 's6', 's5', 's4', 's3', 's2', 's1', 'ho'];
+  for (const code of orderedCodes) {
+    const regex = new RegExp(`\\b${code}\\b`, 'i');
+    if (regex.test(q)) {
+      return code.toUpperCase();
+    }
+  }
+  // Also match "branch 1" -> "S1", "shop 2" -> "S2", "head office" -> "HO"
+  const numBranch = q.match(/\b(?:branch|shop|store)\s*(\d{1,2})\b/i);
+  if (numBranch) {
+    const n = parseInt(numBranch[1], 10);
+    if (n >= 1 && n <= 13) return `S${n}`;
+  }
+  if (/\bhead\s*office\b/i.test(q)) return 'HO';
+  return null;
+}
+
+function isManglishOrMalayalam(q: string): boolean {
+  return (
+    /[\u0D00-\u0D7F]/.test(q) ||
+    /\b(undo|undu|etra|ethra|evide|kanikku|parayu|innu|swarnam|cheyta|ulla|enthokke|ethokke|ayittund)\b/i.test(q)
+  );
 }
 
 // ─── InventoryResultCard ──────────────────────────────────────────────────────
@@ -97,7 +124,7 @@ function renderMarkdown(text: string) {
 function InventoryResultCard({ result }: { result: StructuredResult }) {
   const [showAll, setShowAll] = useState(false);
   const displayItems = showAll ? result.items : result.items.slice(0, 5);
-  const isDiamond = result.items.some(i => i.carat !== undefined);
+  const isDiamond = result.items.some(i => i.carat !== undefined && i.carat !== null);
 
   return (
     <div className="space-y-3 w-full">
@@ -109,7 +136,12 @@ function InventoryResultCard({ result }: { result: StructuredResult }) {
         </span>
         {result.totalCarats != null && result.totalCarats > 0 && (
           <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#fed65b]/10 border border-[#fed65b]/30 text-[#fed65b] text-[11px] font-bold font-mono">
-            💎 {formatNumber(result.totalCarats, 2)} ct total
+            💎 {formatNumber(result.totalCarats, 2)} ct
+          </span>
+        )}
+        {result.totalGrams != null && result.totalGrams > 0 && (
+          <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#fed65b]/10 border border-[#fed65b]/30 text-[#fed65b] text-[11px] font-bold font-mono">
+            🟡 {formatNumber(result.totalGrams, 3)} g
           </span>
         )}
         {result.totalValue != null && result.totalValue > 0 && (
@@ -120,14 +152,16 @@ function InventoryResultCard({ result }: { result: StructuredResult }) {
       </div>
 
       {/* Summary text */}
-      <p className="text-[12px] text-slate-200 leading-relaxed">{result.summary}</p>
+      <p className="text-[12px] text-slate-200 leading-relaxed">{renderMarkdown(result.summary)}</p>
 
       {/* Branch Breakdown */}
       {result.branchBreakdown && result.branchBreakdown.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {result.branchBreakdown.map((b, i) => (
             <span key={i} className="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-[10px] font-mono text-slate-300">
-              📍 {b.branch}: {b.count} {isDiamond && b.carats ? `(${formatNumber(b.carats, 2)}ct)` : ''}
+              📍 {b.branch}: {b.count}
+              {isDiamond && b.carats ? ` (${formatNumber(b.carats, 2)} ct)` : ''}
+              {!isDiamond && b.weightGrams ? ` (${formatNumber(b.weightGrams, 3)} g)` : ''}
             </span>
           ))}
         </div>
@@ -150,13 +184,15 @@ function InventoryResultCard({ result }: { result: StructuredResult }) {
                     </>
                   ) : (
                     <>
+                      <th className="px-3 py-2 text-left text-[10px] uppercase tracking-wider text-slate-400 font-bold">Item</th>
                       <th className="px-3 py-2 text-left text-[10px] uppercase tracking-wider text-slate-400 font-bold">Brand</th>
                       <th className="px-3 py-2 text-right text-[10px] uppercase tracking-wider text-slate-400 font-bold">Weight</th>
-                      <th className="px-3 py-2 text-left text-[10px] uppercase tracking-wider text-slate-400 font-bold">Purity</th>
                     </>
                   )}
                   <th className="px-3 py-2 text-left text-[10px] uppercase tracking-wider text-slate-400 font-bold">Branch</th>
-                  <th className="px-3 py-2 text-right text-[10px] uppercase tracking-wider text-slate-400 font-bold">Price</th>
+                  {isDiamond && (
+                    <th className="px-3 py-2 text-right text-[10px] uppercase tracking-wider text-slate-400 font-bold">Price</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -172,15 +208,17 @@ function InventoryResultCard({ result }: { result: StructuredResult }) {
                       </>
                     ) : (
                       <>
+                        <td className="px-3 py-2 text-slate-200 max-w-[140px] truncate">{item.item || '—'}</td>
                         <td className="px-3 py-2 text-slate-300">{item.brand || '—'}</td>
                         <td className="px-3 py-2 text-right text-slate-200">{item.weight != null ? `${formatNumber(item.weight, 3)} g` : '—'}</td>
-                        <td className="px-3 py-2 text-slate-300">{item.purity || '—'}</td>
                       </>
                     )}
-                    <td className="px-3 py-2 text-slate-400 text-[10px]">{item.branch || '—'}</td>
-                    <td className="px-3 py-2 text-right text-emerald-400 font-semibold">
-                      {item.tagPrice != null ? formatUsd(item.tagPrice) : '—'}
-                    </td>
+                    <td className="px-3 py-2 text-slate-300 font-bold text-[10px]">{item.branch || '—'}</td>
+                    {isDiamond && (
+                      <td className="px-3 py-2 text-right text-emerald-400 font-semibold">
+                        {item.tagPrice != null ? formatUsd(item.tagPrice) : '—'}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -218,7 +256,7 @@ function InventoryResultCard({ result }: { result: StructuredResult }) {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 text-[11px] font-semibold hover:bg-slate-700 transition-colors"
           >
             <Download className="w-3.5 h-3.5" />
-            Export Query
+            Export CSV
           </button>
         </div>
       )}
@@ -232,6 +270,7 @@ export function AIAssistantModal() {
   const {
     goldItems,
     diamondItems,
+    soldGoldItems,
     alerts,
     goldSpotPrice,
     totalGoldWeightKg,
@@ -244,28 +283,36 @@ export function AIAssistantModal() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [inputText, setInputText] = useState('');
   const [isThinking, setIsThinking] = useState(false);
-  const [ttsEnabled, setTtsEnabled] = useState(false);
+  const [ttsEnabled, setTtsEnabled] = useState(true);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [geminiApiKey, setGeminiApiKey] = useState('');
   const [isKeySaved, setIsKeySaved] = useState(false);
 
   // Voice / Speech
   const [isListening, setIsListening] = useState(false);
+  const [voiceLang, setVoiceLang] = useState<VoiceLang>('en-IN');
   const [voiceTranscript, setVoiceTranscript] = useState('');
+  const [voiceError, setVoiceError] = useState('');
   const [voiceSupported, setVoiceSupported] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const latestTranscriptRef = useRef<string>('');
+  const hasSentVoiceRef = useRef<boolean>(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Load saved API key
+  // Load saved API key & detect SpeechRecognition support
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedKey = localStorage.getItem('SHINE_GEMINI_API_KEY');
       if (savedKey) { setGeminiApiKey(savedKey); setIsKeySaved(true); }
-      // Check speech support
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       setVoiceSupported(!!SpeechRecognition);
+      // Preload browser speechSynthesis voices
+      if (window.speechSynthesis) {
+        window.speechSynthesis.getVoices();
+      }
     }
   }, []);
 
@@ -282,7 +329,7 @@ export function AIAssistantModal() {
       id: 'welcome',
       sender: 'ai',
       type: 'text',
-      text: `Hello! I'm **RUBY**, your **SHINE AI Vault Copilot** powered by Google Gemini.\n\n🔗 Synced with your live vault inventory — ${diamondItems.length} diamonds & ${goldItems.length} gold items.\n\n🌐 **Multilingual**: Chat in English, Malayalam (Manglish), or Hindi!\n\n🎙️ **Voice Ready**: Tap the mic button or type your query below.\n\n**Try asking:**\n• "VVS2 E pear shape 1.5 to 2 carat diamond available?\"\n• "Show total vault valuation"\n• "Gold stock in HO"`,
+      text: `Hello! I'm **RUBY**, your **SHINE AI Vault Copilot**.\n\n🔗 Live Synced — Search **Gold (g)**, **Diamonds (ct)**, **Tag Numbers**, **Branch Stock (HO, S1–S13)**, **Held Items**, **Transfers**, and **Sold Gold**.\n\n🎙️ **Voice Ready**: Tap the **Mic** button and speak in English, Manglish, or Malayalam!\n\n**Try asking:**\n• "Gold stock in S1"\n• "S1 il etra stock und?"\n• "Show held items" or "Today sold gold"\n• "VVS2 E pear shape diamond available?"`,
       timestamp: 'Just now'
     }
   ]);
@@ -315,54 +362,360 @@ export function AIAssistantModal() {
     };
   }, []);
 
-  // TTS
-  const speakText = useCallback((text: string) => {
-    if (!ttsEnabled || typeof window === 'undefined' || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const clean = text.replace(/[*_#`•]/g, ' ');
-    const utterance = new SpeechSynthesisUtterance(clean);
-    utterance.rate = 1.0;
-    window.speechSynthesis.speak(utterance);
+  const stopSpeaking = useCallback(() => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    setIsSpeaking(false);
+  }, []);
+
+  // Clean Text-to-Speech (automatically reads aloud when ttsEnabled or when user queried by voice)
+  const speakText = useCallback((text: string, forceSpeak = false) => {
+    if ((!ttsEnabled && !forceSpeak) || typeof window === 'undefined' || !window.speechSynthesis) return;
+    try {
+      window.speechSynthesis.cancel();
+      // Remove markdown, emojis, bullets, and extra symbols for natural voice readout
+      const clean = text
+        .replace(/[*_#`•|]/g, ' ')
+        .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '')
+        .replace(/➔/g, ' to ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 320);
+
+      if (!clean) return;
+
+      const utterance = new SpeechSynthesisUtterance(clean);
+      const voices = window.speechSynthesis.getVoices();
+
+      // Match Malayalam voice if Malayalam script present, else Indian/English voice
+      const hasMalayalamScript = /[\u0D00-\u0D7F]/.test(clean);
+      let chosenVoice = null;
+      if (hasMalayalamScript) {
+        chosenVoice = voices.find(v => v.lang.toLowerCase().startsWith('ml'));
+      } else {
+        chosenVoice =
+          voices.find(v => v.lang === 'en-IN') ||
+          voices.find(v => v.lang.startsWith('en-GB')) ||
+          voices.find(v => v.lang.startsWith('en'));
+      }
+      if (chosenVoice) utterance.voice = chosenVoice;
+      utterance.lang = hasMalayalamScript ? 'ml-IN' : 'en-IN';
+      utterance.rate = 1.02;
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
+
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      setIsSpeaking(false);
+    }
   }, [ttsEnabled]);
 
-  // ── Local Inventory Engine (fallback when no API key) ─────────────────────
-  const localInventoryEngine = useCallback((query: string): { text?: string; structured?: StructuredResult } => {
+  // Stop voice & speech when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      stopSpeaking();
+    }
+  }, [isOpen, stopSpeaking]);
+
+  // ── Smart Live Inventory Engine (Instant, Accurate, Bilingual EN + Manglish) ──
+  const smartInventoryEngine = useCallback((query: string): { text?: string; structured?: StructuredResult } => {
     const q = query.toLowerCase().trim();
+    const isML = isManglishOrMalayalam(q);
+    const reqBranch = extractRequestedBranch(q);
 
-    // ── Diamond availability query ──
-    const isDiamondQuery = q.includes('diamond') || q.includes('carat') || q.includes('clarity') ||
-      q.includes('shape') || q.includes('round') || q.includes('pear') || q.includes('oval') ||
-      q.includes('princess') || q.includes('cushion') || q.includes('emerald') ||
-      q.includes('vvs') || q.includes('vs1') || q.includes('vs2') || q.includes('si1') || q.includes('si2') ||
-      q.includes('ഡയമണ്ട്') || q.includes('heera') || q.includes('हीरा') ||
-      q.includes('available') || q.includes('undo') || q.includes('undu');
+    // 1. Direct Tag Number or Certificate lookup across Gold, Diamonds & Sold
+    const tokens = query
+      .trim()
+      .split(/[\s,?!]+/)
+      .filter(t => t.length >= 3 && /\d/.test(t) && !/^(s\d{1,2}|\d+(\.\d+)?(g|gm|gram|kg|ct|carat|k))$/i.test(t));
 
-    if (isDiamondQuery) {
-      let filtered = [...diamondItems];
+    if (tokens.length > 0) {
+      for (const tok of tokens) {
+        const tUp = tok.toUpperCase();
+        const foundGold = goldItems.find(
+          g => g.tagNo.toUpperCase() === tUp || g.tagNo.toUpperCase().includes(tUp) || g.certificateNo?.toUpperCase() === tUp
+        );
+        if (foundGold) {
+          const statusNote = foundGold.holdInfo
+            ? `🔒 **ON HOLD** at **${foundGold.holdInfo.branch}** (${foundGold.holdInfo.days} Days)`
+            : foundGold.transferInfo
+            ? `🚚 **IN TRANSFER** (${foundGold.transferInfo.fromBranch} ➔ ${foundGold.transferInfo.toBranch})`
+            : `✅ **Available in Branch ${foundGold.branch}**`;
+          return {
+            structured: {
+              type: 'inventory-result',
+              summary: isML
+                ? `Tag **${foundGold.tagNo}** (**${foundGold.item}**, ${formatNumber(foundGold.weight, 3)} g) **${foundGold.branch}** ബ്രാഞ്ചിൽ ഉണ്ട് — ${statusNote}`
+                : `Found Gold Tag **${foundGold.tagNo}** (**${foundGold.item}**, ${formatNumber(foundGold.weight, 3)} g) in **${foundGold.branch}** — ${statusNote}`,
+              totalFound: 1,
+              totalGrams: foundGold.weight,
+              items: [
+                {
+                  tagNo: foundGold.tagNo,
+                  branch: foundGold.branch,
+                  weight: foundGold.weight,
+                  purity: foundGold.purity,
+                  brand: foundGold.brand,
+                  item: foundGold.item
+                }
+              ]
+            }
+          };
+        }
 
-      // Clarity filters
-      const clarityMap: Record<string, string[]> = {
-        'if': ['IF'], 'fl': ['FL'], 'vvs1': ['VVS1'], 'vvs2': ['VVS2'],
-        'vs1': ['VS1'], 'vs2': ['VS2'], 'si1': ['SI1'], 'si2': ['SI2'],
-        'si3': ['SI3'], 'i1': ['I1'], 'i2': ['I2'], 'i3': ['I3']
+        const foundDiamond = diamondItems.find(
+          d => d.tagNo.toUpperCase() === tUp || d.tagNo.toUpperCase().includes(tUp) || d.certificateNo?.toUpperCase() === tUp
+        );
+        if (foundDiamond) {
+          return {
+            structured: {
+              type: 'inventory-result',
+              summary: isML
+                ? `Diamond Tag **${foundDiamond.tagNo}** (${foundDiamond.carat} ct ${foundDiamond.shape} ${foundDiamond.clarity}/${foundDiamond.colour}) **${foundDiamond.branch}** ബ്രാഞ്ചിൽ ലഭ്യമാണ്.`
+                : `Found Diamond Tag **${foundDiamond.tagNo}** (${foundDiamond.carat} ct ${foundDiamond.shape}, ${foundDiamond.clarity}/${foundDiamond.colour}) in **${foundDiamond.branch}**.`,
+              totalFound: 1,
+              totalCarats: foundDiamond.carat,
+              totalValue: foundDiamond.tagPrice,
+              items: [
+                {
+                  tagNo: foundDiamond.tagNo,
+                  branch: foundDiamond.branch,
+                  carat: foundDiamond.carat,
+                  clarity: foundDiamond.clarity,
+                  shape: foundDiamond.shape,
+                  colour: foundDiamond.colour,
+                  tagPrice: foundDiamond.tagPrice,
+                  item: foundDiamond.item
+                }
+              ]
+            }
+          };
+        }
+
+        const foundSold = soldGoldItems.find(s => s.tagNo.toUpperCase() === tUp || s.tagNo.toUpperCase().includes(tUp));
+        if (foundSold) {
+          return {
+            text: isML
+              ? `🛍️ Tag **${foundSold.tagNo}** (**${foundSold.item}**, ${formatNumber(foundSold.weight, 3)} g) ഇതിനകം **${foundSold.branch}** ബ്രാഞ്ചിൽ **${foundSold.soldDateLabel}** (${foundSold.soldTime}) ന് **SOLD** ആയിട്ടുണ്ട് (By ${foundSold.soldBy}).`
+              : `🛍️ Tag **${foundSold.tagNo}** (**${foundSold.item}**, ${formatNumber(foundSold.weight, 3)} g) was already marked **SOLD** in **${foundSold.branch}** on **${foundSold.soldDateLabel}** at ${foundSold.soldTime} (by ${foundSold.soldBy}).`
+          };
+        }
+      }
+    }
+
+    // 2. Held Items Query
+    if (/\b(hold|held|reserved)\b/i.test(q)) {
+      const heldGold = goldItems.filter(i => i.holdInfo && (!reqBranch || i.holdInfo.branch.toUpperCase() === reqBranch));
+      const heldDia = diamondItems.filter(i => i.holdInfo && (!reqBranch || i.holdInfo.branch.toUpperCase() === reqBranch));
+      const totalHeld = heldGold.length + heldDia.length;
+
+      if (totalHeld === 0) {
+        return {
+          text: isML
+            ? `🔒 നിലവിൽ ${reqBranch ? `**${reqBranch}** ബ്രാഞ്ചിൽ ` : ''}ഒരു ഐറ്റവും **Hold**-ൽ ഇല്ല.`
+            : `🔒 There are currently **0 items on Hold**${reqBranch ? ` in **${reqBranch}**` : ''}.`
+        };
+      }
+
+      const lines = [
+        ...heldGold.map(g => `• **${g.tagNo}** (${g.item}, ${formatNumber(g.weight, 3)} g) — Held in **${g.holdInfo!.branch}** for **${g.holdInfo!.days}D**`),
+        ...heldDia.map(d => `• **${d.tagNo}** (${d.item}, ${formatNumber(d.carat, 2)} ct) — Held in **${d.holdInfo!.branch}** for **${d.holdInfo!.days}D**`)
+      ];
+      return {
+        text: `🔒 **Active Held Items (${totalHeld}):**\n\n${lines.join('\n')}`
       };
-      let clarityFiltered = false;
-      for (const [key, values] of Object.entries(clarityMap)) {
-        if (q.includes(key)) {
-          filtered = filtered.filter(d => values.some(v => d.clarity?.toUpperCase() === v));
-          clarityFiltered = true;
+    }
+
+    // 3. Pending Transfers Query
+    if (/\b(transfer|transfers|transit|incoming|pending transfer)\b/i.test(q)) {
+      const trGold = goldItems.filter(i => i.transferInfo && (!reqBranch || i.transferInfo.toBranch.toUpperCase() === reqBranch || i.transferInfo.fromBranch.toUpperCase() === reqBranch));
+      const trDia = diamondItems.filter(i => i.transferInfo && (!reqBranch || i.transferInfo.toBranch.toUpperCase() === reqBranch || i.transferInfo.fromBranch.toUpperCase() === reqBranch));
+      const totalTr = trGold.length + trDia.length;
+
+      if (totalTr === 0) {
+        return {
+          text: isML
+            ? `🚚 നിലവിൽ പെൻഡിംഗ് ട്രാൻസ്ഫറുകൾ ഒന്നുമില്ല.`
+            : `🚚 There are currently **0 pending branch transfers**.`
+        };
+      }
+
+      const lines = [
+        ...trGold.map(g => `• **${g.tagNo}** (${g.item}, ${formatNumber(g.weight, 3)} g) — **${g.transferInfo!.fromBranch} ➔ ${g.transferInfo!.toBranch}** (Waiting Accept)`),
+        ...trDia.map(d => `• **${d.tagNo}** (${d.item}, ${formatNumber(d.carat, 2)} ct) — **${d.transferInfo!.fromBranch} ➔ ${d.transferInfo!.toBranch}** (Waiting Accept)`)
+      ];
+      return {
+        text: `🚚 **Pending Branch Transfers (${totalTr}):**\n\n${lines.join('\n')}`
+      };
+    }
+
+    // 4. Sold Gold Query
+    if (/\b(sold|sale|sales|vittupoya)\b/i.test(q)) {
+      const now = new Date();
+      const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const isTodayOnly = /\b(today|innu|ഇന്ന്)\b/i.test(q);
+
+      const list = soldGoldItems.filter(s => {
+        if (isTodayOnly && s.soldDate !== todayKey) return false;
+        if (reqBranch && s.branch.toUpperCase() !== reqBranch) return false;
+        return true;
+      });
+
+      const totalW = list.reduce((sum, s) => sum + (s.weight || 0), 0);
+      if (list.length === 0) {
+        return {
+          text: isML
+            ? `🛍️ ${isTodayOnly ? 'ഇന്ന് ' : ''}${reqBranch ? `**${reqBranch}** ബ്രാഞ്ചിൽ ` : ''}ഒരു Gold ഐറ്റവും **Sold** ആയിട്ടില്ല.`
+            : `🛍️ No Gold items marked **SOLD**${isTodayOnly ? ' today' : ''}${reqBranch ? ` in **${reqBranch}**` : ''}.`
+        };
+      }
+
+      const lines = list.slice(0, 10).map(
+        s => `• **${s.tagNo}** (${s.item}, **${formatNumber(s.weight, 3)} g**) — **${s.branch}** • ${s.soldDateLabel} ${s.soldTime}`
+      );
+      return {
+        text: `🛍️ **Sold Gold Report${isTodayOnly ? ' (Today)' : ''}${reqBranch ? ` • ${reqBranch}` : ''}:**\n\n• **Total Sold:** **${list.length} items** (**${formatNumber(totalW, 3)} g**)\n\n${lines.join('\n')}`
+      };
+    }
+
+    // 5. Detect Explicit Gold vs Explicit Diamond intent (NEVER trigger diamond just on "available"/"undo")
+    const dynamicGoldBrands = Array.from(new Set(goldItems.map(g => g.brand?.toLowerCase()).filter(Boolean)));
+    const isExplicitGold =
+      /\b(gold|swarnam|bar|bars|coin|coins|bullion|24k|22k|18k|14k|gram|grams|gm|pamp|valcambi|metalor|perth|auriz|auris|emirates|heraeus)\b/i.test(q) ||
+      q.includes('സ്വർണ്ണം') ||
+      dynamicGoldBrands.some(b => b && b.length >= 4 && q.includes(b));
+
+    const isExplicitDiamond =
+      /\b(diamond|diamonds|carat|carats|ct|clarity|shape|round|pear|oval|princess|cushion|emerald|radiant|asscher|marquise|heart|solitaire|vvs1|vvs2|vvs|vs1|vs2|si1|si2|fl|if|gia|igi|heera|natural|lab grown)\b/i.test(q) ||
+      q.includes('ഡയമണ്ട്') ||
+      q.includes('हीरा');
+
+    // 6. Gold Inventory Search
+    if (isExplicitGold && !isExplicitDiamond) {
+      let filtered = [...goldItems];
+
+      if (reqBranch) {
+        filtered = filtered.filter(g => g.branch.trim().toUpperCase() === reqBranch);
+      }
+
+      for (const purity of ['24k', '22k', '18k', '14k']) {
+        if (new RegExp(`\\b${purity}\\b`, 'i').test(q)) {
+          filtered = filtered.filter(g => g.purity?.toLowerCase() === purity);
           break;
         }
       }
 
-      // Colour filters (single letters D E F G H I J K...)
-      const colourMatch = q.match(/\b([d-m])\b(?!\w)/i) || q.match(/\bcolou?r\s*:?\s*([d-m])\b/i) || q.match(/\b([d-m])\s+(?:color|colour|colou?r)\b/i);
+      for (const brand of dynamicGoldBrands) {
+        if (brand && brand.length >= 3 && q.includes(brand)) {
+          filtered = filtered.filter(
+            g =>
+              g.brand?.toLowerCase().includes(brand) ||
+              g.item?.toLowerCase().includes(brand) ||
+              g.description?.toLowerCase().includes(brand)
+          );
+          break;
+        }
+      }
+
+      // Weight Range (e.g. "5 to 20 g" or "10-50g")
+      const rangeMatch = q.match(/(\d+(?:\.\d+)?)\s*(?:to|-|–|and)\s*(\d+(?:\.\d+)?)\s*(?:gram|grams|gm|g)?\b/i);
+      if (rangeMatch) {
+        const min = parseFloat(rangeMatch[1]);
+        const max = parseFloat(rangeMatch[2]);
+        if (!isNaN(min) && !isNaN(max)) {
+          filtered = filtered.filter(g => g.weight >= min && g.weight <= max);
+        }
+      } else {
+        // Exact gram matching (e.g. "50g", "10 gram")
+        const gramMatch = q.match(/(\d+(?:\.\d+)?)\s*(?:gram|grams|gm|g)\b/i);
+        if (gramMatch) {
+          const grams = parseFloat(gramMatch[1]);
+          if (/\b(above|more than|over|greater)\b/i.test(q)) {
+            filtered = filtered.filter(g => g.weight > grams);
+          } else if (/\b(below|less than|under)\b/i.test(q)) {
+            filtered = filtered.filter(g => g.weight < grams);
+          } else {
+            filtered = filtered.filter(
+              g =>
+                Math.abs(g.weight - grams) <= 0.25 ||
+                g.item?.toLowerCase().includes(`${grams}g`) ||
+                g.description?.toLowerCase().includes(`${grams}g`)
+            );
+          }
+        }
+      }
+
+      const branchMap: Record<string, { count: number; weightGrams: number }> = {};
+      filtered.forEach(g => {
+        const b = g.branch || 'Unknown';
+        if (!branchMap[b]) branchMap[b] = { count: 0, weightGrams: 0 };
+        branchMap[b].count++;
+        branchMap[b].weightGrams += g.weight || 0;
+      });
+      const branchBreakdown: BranchBreakdown[] = Object.entries(branchMap).map(([branch, v]) => ({
+        branch,
+        count: v.count,
+        weightGrams: v.weightGrams
+      }));
+
+      const totalWeight = filtered.reduce((s, g) => s + (g.weight || 0), 0);
+      const totalValue = filtered.reduce((s, g) => s + (g.weight || 0) * goldSpotPrice, 0);
+
+      const summary =
+        filtered.length > 0
+          ? isML
+            ? `✅ ${reqBranch ? `**${reqBranch}** ബ്രാഞ്ചിൽ ` : ''}**${filtered.length} Gold ഐറ്റങ്ങൾ** (ആകെ **${formatNumber(totalWeight, 3)} g**) ലഭ്യമാണ്.`
+            : `✅ Found **${filtered.length} Gold item${filtered.length > 1 ? 's' : ''}** totaling **${formatNumber(totalWeight, 3)} g**${reqBranch ? ` in **${reqBranch}**` : ''}.`
+          : isML
+          ? `❌ നിങ്ങൾ തിരഞ്ഞ വിവരങ്ങൾക്കനുസരിച്ച് ${reqBranch ? `**${reqBranch}** ബ്രാഞ്ചിൽ ` : ''}Gold സ്റ്റോക്ക് ലഭ്യമല്ല.`
+          : `❌ No Gold items matched your criteria${reqBranch ? ` in **${reqBranch}**` : ''}.`;
+
+      return {
+        structured: {
+          type: 'inventory-result',
+          summary,
+          totalFound: filtered.length,
+          totalGrams: totalWeight,
+          totalValue,
+          items: filtered.map(g => ({
+            tagNo: g.tagNo,
+            branch: g.branch,
+            weight: g.weight,
+            purity: g.purity,
+            brand: g.brand,
+            item: g.item,
+            description: g.description
+          })),
+          branchBreakdown
+        }
+      };
+    }
+
+    // 7. Diamond Inventory Search
+    if (isExplicitDiamond) {
+      let filtered = [...diamondItems];
+
+      const clarityKeys = ['vvs1', 'vvs2', 'vs1', 'vs2', 'si1', 'si2', 'si3', 'fl', 'if', 'i1', 'i2', 'i3'];
+      for (const key of clarityKeys) {
+        if (new RegExp(`\\b${key}\\b`, 'i').test(q)) {
+          filtered = filtered.filter(d => d.clarity?.toLowerCase() === key);
+          break;
+        }
+      }
+
+      const colourMatch =
+        q.match(/\bcolou?r\s*:?\s*([d-m])\b/i) ||
+        q.match(/\b([d-m])\s+(?:color|colour)\b/i) ||
+        q.match(/\b(?:vvs1|vvs2|vs1|vs2|si1|si2|if|fl)\s+([d-m])\b/i);
       if (colourMatch) {
         const col = colourMatch[1].toUpperCase();
         filtered = filtered.filter(d => d.colour?.toUpperCase() === col);
       }
 
-      // Shape filters
       const shapeKeys = ['round', 'pear', 'oval', 'princess', 'cushion', 'emerald', 'radiant', 'asscher', 'marquise', 'heart', 'trillion'];
       for (const shape of shapeKeys) {
         if (q.includes(shape)) {
@@ -371,9 +724,8 @@ export function AIAssistantModal() {
         }
       }
 
-      // Carat range filters
-      // Pattern: "1.5 to 2" or "1.5-2" or "between 1.5 and 2"
-      const rangeMatch = q.match(/(\d+(?:\.\d+)?)\s*(?:to|-|–|and)\s*(\d+(?:\.\d+)?)\s*(?:carat|ct|karat)?/i) ||
+      const rangeMatch =
+        q.match(/(\d+(?:\.\d+)?)\s*(?:to|-|–|and)\s*(\d+(?:\.\d+)?)\s*(?:carat|ct)?/i) ||
         q.match(/(\d+(?:\.\d+)?)\s*(?:carat|ct)\s*(?:to|-)\s*(\d+(?:\.\d+)?)/i);
       if (rangeMatch) {
         const min = parseFloat(rangeMatch[1]);
@@ -382,33 +734,25 @@ export function AIAssistantModal() {
           filtered = filtered.filter(d => d.carat >= min && d.carat <= max);
         }
       } else {
-        // Single carat threshold
-        const caratMatch = q.match(/(\d+(?:\.\d+)?)\s*(?:carat|ct)/i);
+        const caratMatch = q.match(/(\d+(?:\.\d+)?)\s*(?:carat|ct)\b/i);
         if (caratMatch) {
           const carat = parseFloat(caratMatch[1]);
           if (!isNaN(carat)) {
-            if (q.includes('above') || q.includes('more than') || q.includes('greater') || q.includes('over')) {
+            if (/\b(above|more than|greater|over)\b/i.test(q)) {
               filtered = filtered.filter(d => d.carat > carat);
-            } else if (q.includes('below') || q.includes('less than') || q.includes('under')) {
+            } else if (/\b(below|less than|under)\b/i.test(q)) {
               filtered = filtered.filter(d => d.carat < carat);
             } else {
-              // exact ±0.1 tolerance
-              filtered = filtered.filter(d => Math.abs(d.carat - carat) <= 0.1);
+              filtered = filtered.filter(d => Math.abs(d.carat - carat) <= 0.15);
             }
           }
         }
       }
 
-      // Branch filter
-      const branchNames = ['ho', 's1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10', 's11', 's12', 's13'];
-      for (const branch of branchNames) {
-        if (q.includes(branch)) {
-          filtered = filtered.filter(d => d.branch.toLowerCase().includes(branch));
-          break;
-        }
+      if (reqBranch) {
+        filtered = filtered.filter(d => d.branch.trim().toUpperCase() === reqBranch);
       }
 
-      // Build branch breakdown
       const branchMap: Record<string, { count: number; carats: number }> = {};
       filtered.forEach(d => {
         const b = d.branch || 'Unknown';
@@ -417,26 +761,27 @@ export function AIAssistantModal() {
         branchMap[b].carats += d.carat || 0;
       });
       const branchBreakdown: BranchBreakdown[] = Object.entries(branchMap).map(([branch, v]) => ({
-        branch, count: v.count, carats: v.carats
+        branch,
+        count: v.count,
+        carats: v.carats
       }));
 
       const totalCarats = filtered.reduce((s, d) => s + (d.carat || 0), 0);
       const totalValue = filtered.reduce((s, d) => s + (d.tagPrice || 0), 0);
 
-      const summaryParts: string[] = [];
-      if (q.includes('available') || q.includes('undo') || q.includes('undu')) {
-        summaryParts.push(filtered.length > 0 ? `✅ Yes! ${filtered.length} matching diamond${filtered.length > 1 ? 's' : ''} found in your vault.` : '❌ No matching diamonds found for the specified criteria.');
-      } else {
-        summaryParts.push(filtered.length > 0 ? `Found ${filtered.length} diamond${filtered.length > 1 ? 's' : ''} matching your query.` : 'No diamonds match the specified criteria.');
-      }
-      if (filtered.length > 0 && branchBreakdown.length > 0) {
-        summaryParts.push(`Available across ${branchBreakdown.length} branch${branchBreakdown.length > 1 ? 'es' : ''}: ${branchBreakdown.map(b => b.branch.split(' ').slice(-2).join(' ')).join(', ')}.`);
-      }
+      const summary =
+        filtered.length > 0
+          ? isML
+            ? `✅ ${reqBranch ? `**${reqBranch}** ബ്രാഞ്ചിൽ ` : ''}**${filtered.length} Diamond** (${formatNumber(totalCarats, 2)} ct) ലഭ്യമാണ്.`
+            : `✅ Found **${filtered.length} matching Diamond${filtered.length > 1 ? 's' : ''}** (${formatNumber(totalCarats, 2)} ct total)${reqBranch ? ` in **${reqBranch}**` : ''}.`
+          : isML
+          ? `❌ നിങ്ങൾ തിരഞ്ഞ Diamond സ്റ്റോക്ക് നിലവിൽ ലഭ്യമല്ല.`
+          : `❌ No matching Diamonds found for the specified criteria.`;
 
       return {
         structured: {
           type: 'inventory-result',
-          summary: summaryParts.join(' '),
+          summary,
           totalFound: filtered.length,
           totalCarats,
           totalValue,
@@ -456,107 +801,57 @@ export function AIAssistantModal() {
       };
     }
 
-    // ── Gold availability query ──
-    if (q.includes('gold') || q.includes('swarnam') || q.includes('bar') || q.includes('pamp') ||
-      q.includes('24k') || q.includes('22k') || q.includes('18k') || q.includes('valcambi') ||
-      q.includes('auriz') || q.includes('auris') || q.includes('gram') || q.includes('gm') || q.includes('kg') ||
-      q.includes('coin') || q.includes('bullion') || q.includes('pieces') || q.includes('piece')) {
-      let filtered = [...goldItems];
-
-      const branchNames = ['ho', 's1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10', 's11', 's12', 's13'];
-      for (const branch of branchNames) {
-        if (q.includes(branch)) {
-          filtered = filtered.filter(g => g.branch.toLowerCase().includes(branch));
-          break;
-        }
-      }
-      for (const purity of ['24k', '22k', '18k', '14k']) {
-        if (q.includes(purity)) {
-          filtered = filtered.filter(g => g.purity?.toLowerCase() === purity);
-          break;
-        }
-      }
-      for (const brand of ['pamp', 'valcambi', 'metalor', 'argor-heraeus', 'perth', 'auriz', 'auris', 'emirates']) {
-        if (q.includes(brand)) {
-          filtered = filtered.filter(g => 
-            g.brand?.toLowerCase().includes(brand) ||
-            g.item?.toLowerCase().includes(brand) ||
-            g.description?.toLowerCase().includes(brand)
-          );
-          break;
-        }
-      }
-
-      // Gram or Kg matching (e.g. "50 gram", "50g", "1 kg")
-      const gramMatch = q.match(/(\d+(?:\.\d+)?)\s*(?:gram|g|gm)\b/i);
-      if (gramMatch) {
-        const grams = parseFloat(gramMatch[1]);
-        const kgVal = grams / 1000;
-        filtered = filtered.filter(g => 
-          Math.abs(g.weight - kgVal) < 0.001 || 
-          Math.abs(g.weight - grams) < 0.1 ||
-          g.description?.toLowerCase().includes(`${grams}g`) ||
-          g.item?.toLowerCase().includes(`${grams}g`)
-        );
-      }
-
-      const rangeMatch = q.match(/(\d+(?:\.\d+)?)\s*(?:to|-)\s*(\d+(?:\.\d+)?)\s*(?:kg|g)?/i);
-      if (rangeMatch) {
-        const min = parseFloat(rangeMatch[1]);
-        const max = parseFloat(rangeMatch[2]);
-        if (!isNaN(min) && !isNaN(max)) {
-          filtered = filtered.filter(g => g.weight >= min && g.weight <= max);
-        }
-      }
-
-      const branchMap: Record<string, { count: number; weightKg: number }> = {};
-      filtered.forEach(g => {
-        const b = g.branch || 'Unknown';
-        if (!branchMap[b]) branchMap[b] = { count: 0, weightKg: 0 };
-        branchMap[b].count++;
-        branchMap[b].weightKg += g.weight || 0;
-      });
-      const branchBreakdown: BranchBreakdown[] = Object.entries(branchMap).map(([branch, v]) => ({
-        branch, count: v.count, weightKg: v.weightKg
-      }));
-
-      const totalWeight = filtered.reduce((s, g) => s + (g.weight || 0), 0);
-      const totalValue = filtered.reduce((s, g) => s + (g.estValueUsd || g.weight * 1000 * goldSpotPrice), 0);
+    // 8. Specific Branch Stock Summary (e.g., "S1 stock", "S2 il etra und?", "Show HO")
+    if (reqBranch) {
+      const bGold = goldItems.filter(g => g.branch.trim().toUpperCase() === reqBranch);
+      const bDia = diamondItems.filter(d => d.branch.trim().toUpperCase() === reqBranch);
+      const bGoldGrams = bGold.reduce((s, g) => s + (g.weight || 0), 0);
+      const bDiaCarats = bDia.reduce((s, d) => s + (d.carat || 0), 0);
+      const bHeld = bGold.filter(g => g.holdInfo).length + bDia.filter(d => d.holdInfo).length;
 
       return {
-        structured: {
-          type: 'inventory-result',
-          summary: filtered.length > 0
-            ? `Found ${filtered.length} gold item${filtered.length > 1 ? 's' : ''} (${formatNumber(totalWeight, 3)} g total) matching your query.`
-            : 'No gold items match the specified criteria.',
-          totalFound: filtered.length,
-          totalCarats: undefined,
-          totalValue,
-          items: filtered.map(g => ({
-            tagNo: g.tagNo,
-            branch: g.branch,
-            weight: g.weight,
-            purity: g.purity,
-            brand: g.brand,
-            item: g.item,
-            description: g.description
-          })),
-          branchBreakdown
-        }
+        text: isML
+          ? `📍 **Branch ${reqBranch} Live Stock:**\n\n• **Gold:** **${bGold.length} items** (**${formatNumber(bGoldGrams, 3)} g**)\n• **Diamonds:** **${bDia.length} stones** (**${formatNumber(bDiaCarats, 2)} ct**)\n• **On Hold:** **${bHeld} items**\n\nകൂടുതൽ അറിയാൻ *"Gold stock in ${reqBranch}"* അല്ലെങ്കിൽ *"Diamond stock in ${reqBranch}"* എന്ന് ചോദിക്കുക.`
+          : `📍 **Branch ${reqBranch} Live Stock Summary:**\n\n• **Gold:** **${bGold.length} items** (**${formatNumber(bGoldGrams, 3)} g**)\n• **Diamonds:** **${bDia.length} stones** (**${formatNumber(bDiaCarats, 2)} ct**)\n• **On Hold:** **${bHeld} items**\n\nAsk *"Gold stock in ${reqBranch}"* or *"Diamond stock in ${reqBranch}"* for the full item list.`
       };
     }
 
-    // ── General summary ──
+    // 9. All Branches Breakdown Query
+    if (/\b(branch|branches|shops|breakdown)\b/i.test(q)) {
+      const branchCodes = ['HO', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10', 'S11', 'S12', 'S13'];
+      const lines = branchCodes
+        .map(code => {
+          const gCount = goldItems.filter(g => g.branch.trim().toUpperCase() === code).length;
+          const gWt = goldItems.filter(g => g.branch.trim().toUpperCase() === code).reduce((s, g) => s + (g.weight || 0), 0);
+          const dCount = diamondItems.filter(d => d.branch.trim().toUpperCase() === code).length;
+          if (gCount === 0 && dCount === 0) return null;
+          return `• **${code}**: Gold **${gCount}** (${formatNumber(gWt, 2)} g) | Diamonds **${dCount}**`;
+        })
+        .filter(Boolean);
+
+      return {
+        text: `🏢 **Live Branch Stock Breakdown:**\n\n${lines.length > 0 ? lines.join('\n') : 'No branch items currently loaded.'}`
+      };
+    }
+
+    // 10. General Live Vault Summary
+    const heldTotal = goldItems.filter(i => i.holdInfo).length + diamondItems.filter(i => i.holdInfo).length;
+    const transferTotal = goldItems.filter(i => i.transferInfo).length + diamondItems.filter(i => i.transferInfo).length;
     const grandTotal = totalGoldValueUsd + totalDiamondValueUsd;
+
     return {
-      text: `📊 **RUBY Live Vault Summary:**\n\n• **Total Gold**: **${formatNumber(totalGoldWeightKg, 3)} g** (${goldItems.length} lots) — **${formatUsd(totalGoldValueUsd)}**\n• **Gold Spot**: **$${goldSpotPrice.toFixed(2)}/g**\n• **Total Diamonds**: **${formatNumber(totalDiamondCarats, 2)} ct** (${diamondItems.length} stones) — **${formatUsd(totalDiamondValueUsd)}**\n• **Combined Vault Value**: **${formatUsd(grandTotal)}**\n• **Active Branches**: 14 Branches synced.\n\nAsk me about specific diamond clarity, shape, carat range, branch stock, or gold holdings!`
+      text: isML
+        ? `📊 **SHINE Live Vault Summary:**\n\n• **Total Gold:** **${formatNumber(totalGoldWeightKg, 3)} g** (${goldItems.length} items)\n• **Total Diamonds:** **${formatNumber(totalDiamondCarats, 2)} ct** (${diamondItems.length} stones)\n• **Held Items:** **${heldTotal}** | **Pending Transfers:** **${transferTotal}**\n• **Sold Gold History:** **${soldGoldItems.length} items**\n\nഉദാഹരണത്തിന് *"S1 gold stock"*, *"Held items"*, *"Today sold"*, അല്ലെങ്കിൽ ഒരു **Tag Number** ചോദിക്കൂ!`
+        : `📊 **RUBY Live Vault Summary:**\n\n• **Total Gold**: **${formatNumber(totalGoldWeightKg, 3)} g** (${goldItems.length} lots) — **${formatUsd(totalGoldValueUsd)}**\n• **Gold Spot**: **$${goldSpotPrice.toFixed(2)}/g**\n• **Total Diamonds**: **${formatNumber(totalDiamondCarats, 2)} ct** (${diamondItems.length} stones) — **${formatUsd(totalDiamondValueUsd)}**\n• **Held Items**: **${heldTotal}** | **Pending Transfers**: **${transferTotal}** | **Sold Gold**: **${soldGoldItems.length}**\n• **Combined Value**: **${formatUsd(grandTotal)}**\n\nAsk about any **Tag Number**, **Branch (HO, S1–S13)**, **Gold (g)**, **Diamonds (ct)**, **Held**, **Transfer**, or **Sold** stock!`
     };
-  }, [diamondItems, goldItems, totalGoldWeightKg, totalGoldValueUsd, totalDiamondCarats, totalDiamondValueUsd, goldSpotPrice]);
+  }, [diamondItems, goldItems, soldGoldItems, totalGoldWeightKg, totalGoldValueUsd, totalDiamondCarats, totalDiamondValueUsd, goldSpotPrice]);
 
   // ── Send Message ─────────────────────────────────────────────────────────
   const handleSendMessage = useCallback(async (textOverride?: string, isVoice = false) => {
     const userText = (textOverride ?? inputText).trim();
     if (!userText) return;
+
+    stopSpeaking();
 
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
@@ -588,13 +883,13 @@ export function AIAssistantModal() {
             diamondCount: diamondItems.length,
             alertsCount: alerts.length,
             allDiamonds: diamondItems,
-            allGold: goldItems
+            allGold: goldItems,
+            soldGold: soldGoldItems
           }
         })
       });
 
       const data = await response.json();
-
       let aiMsg: ChatMessage;
 
       if (data.structured?.type === 'inventory-result') {
@@ -606,7 +901,6 @@ export function AIAssistantModal() {
           structured: data.structured,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
-        speakText(data.structured.summary);
       } else if (data.reply) {
         aiMsg = {
           id: `ai-${Date.now()}`,
@@ -615,22 +909,9 @@ export function AIAssistantModal() {
           text: data.reply,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
-        speakText(data.reply);
-      } else if (data.error && data.error !== 'NO_API_KEY') {
-        // Show actual AI Error to user
-        const local = localInventoryEngine(userText);
-        aiMsg = {
-          id: `ai-${Date.now()}`,
-          sender: 'ai',
-          type: 'text',
-          text: `⚠️ **Google Gemini Connection Notice:**\n\n\`${data.error}\`\n\n---\n**Offline Result:**\n${local.text || local.structured?.summary || 'No matching records in local storage.'}`,
-          structured: local.structured,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-        speakText('Gemini error occurred. Showing offline result.');
       } else {
-        // Fallback to local engine
-        const local = localInventoryEngine(userText);
+        // Seamless Smart RUBY Live Inventory Engine (zero ugly error notices!)
+        const local = smartInventoryEngine(userText);
         aiMsg = {
           id: `ai-${Date.now()}`,
           sender: 'ai',
@@ -639,12 +920,13 @@ export function AIAssistantModal() {
           structured: local.structured,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
-        speakText(aiMsg.text);
       }
 
       setMessages(prev => [...prev, aiMsg]);
+      // Automatically speak back if TTS is ON or if user used Voice Chat
+      speakText(aiMsg.text, isVoice);
     } catch {
-      const local = localInventoryEngine(userText);
+      const local = smartInventoryEngine(userText);
       const aiMsg: ChatMessage = {
         id: `ai-${Date.now()}`,
         sender: 'ai',
@@ -654,51 +936,109 @@ export function AIAssistantModal() {
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages(prev => [...prev, aiMsg]);
-      speakText(aiMsg.text);
+      speakText(aiMsg.text, isVoice);
     } finally {
       setIsThinking(false);
     }
-  }, [inputText, geminiApiKey, goldItems, diamondItems, alerts, totalGoldWeightKg, totalGoldValueUsd, goldSpotPrice, totalDiamondCarats, totalDiamondValueUsd, localInventoryEngine, speakText]);
+  }, [inputText, geminiApiKey, goldItems, diamondItems, soldGoldItems, alerts, totalGoldWeightKg, totalGoldValueUsd, goldSpotPrice, totalDiamondCarats, totalDiamondValueUsd, smartInventoryEngine, speakText, stopSpeaking]);
 
-  // ── Voice / Speech Recognition ───────────────────────────────────────────
+  // ── Voice / Speech Recognition (Fixed for Chrome, Edge & Mobile) ──────────
   const startListening = useCallback(() => {
-    if (!voiceSupported) return;
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    recognitionRef.current = recognition;
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.lang = 'en-US';
+    if (!voiceSupported) {
+      setVoiceError('Voice input requires Chrome or Edge browser.');
+      return;
+    }
 
-    recognition.onstart = () => { setIsListening(true); setVoiceTranscript(''); };
-    recognition.onresult = (event: any) => {
-      const transcript = Array.from(event.results).map((r: any) => r[0].transcript).join('');
-      setVoiceTranscript(transcript);
-      if (event.results[event.results.length - 1].isFinal) {
-        setIsListening(false);
+    stopSpeaking();
+    setVoiceError('');
+    latestTranscriptRef.current = '';
+    hasSentVoiceRef.current = false;
+
+    try {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognitionRef.current = recognition;
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
+      recognition.lang = voiceLang;
+
+      recognition.onstart = () => {
+        setIsListening(true);
         setVoiceTranscript('');
-        if (transcript.trim()) {
-          handleSendMessage(transcript.trim(), true);
+        setVoiceError('');
+      };
+
+      recognition.onresult = (event: any) => {
+        let fullText = '';
+        let isFinalResult = false;
+        for (let i = 0; i < event.results.length; i++) {
+          fullText += event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            isFinalResult = true;
+          }
         }
-      }
-    };
-    recognition.onerror = () => { setIsListening(false); setVoiceTranscript(''); };
-    recognition.onend = () => { setIsListening(false); };
-    recognition.start();
-  }, [voiceSupported, handleSendMessage]);
+        const cleaned = fullText.trim();
+        latestTranscriptRef.current = cleaned;
+        setVoiceTranscript(cleaned);
+
+        if (isFinalResult && cleaned && !hasSentVoiceRef.current) {
+          hasSentVoiceRef.current = true;
+          setIsListening(false);
+          setVoiceTranscript('');
+          handleSendMessage(cleaned, true);
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        setIsListening(false);
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          setVoiceError('Mic permission blocked. Click the lock icon in browser bar and Allow Microphone.');
+        } else if (event.error === 'no-speech') {
+          setVoiceError('No voice heard. Tap the Mic button and speak clearly.');
+        } else if (event.error === 'network') {
+          setVoiceError('Voice recognition needs internet access.');
+        } else if (event.error !== 'aborted') {
+          setVoiceError(`Mic error (${event.error}). Try tapping Mic again.`);
+        }
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+        // If user spoke words but browser ended before marking isFinal, still submit it!
+        if (!hasSentVoiceRef.current && latestTranscriptRef.current.trim()) {
+          hasSentVoiceRef.current = true;
+          const textToSend = latestTranscriptRef.current.trim();
+          latestTranscriptRef.current = '';
+          setVoiceTranscript('');
+          handleSendMessage(textToSend, true);
+        } else {
+          setVoiceTranscript('');
+        }
+      };
+
+      recognition.start();
+    } catch {
+      setIsListening(false);
+      setVoiceError('Could not start microphone. Please allow mic permission.');
+    }
+  }, [voiceSupported, voiceLang, handleSendMessage, stopSpeaking]);
 
   const stopListening = useCallback(() => {
-    recognitionRef.current?.stop();
+    try {
+      recognitionRef.current?.stop();
+    } catch {}
     setIsListening(false);
-    setVoiceTranscript('');
   }, []);
 
   const quickPrompts = [
-    { label: '📊 Total Stock', query: 'Show total vault valuation and inventory summary' },
-    { label: '🟡 Gold Stock', query: 'Gold inventory status and total weight by branch' },
-    { label: '💎 High-Carat', query: 'List all diamonds above 3 carat' },
-    { label: '🔍 VVS2 Pear', query: 'VVS2 E pear shape 1.5 to 2 carat diamond available?' },
-    { label: '🏢 Branches', query: 'Show all branch vault reserves breakdown' },
+    { label: '📊 Summary', query: 'Show total vault summary' },
+    { label: '🟡 Gold Stock', query: 'Show all gold stock' },
+    { label: '💎 Diamonds', query: 'Show all diamond stock' },
+    { label: '🔒 Held Items', query: 'Show held items' },
+    { label: '🛍️ Sold Today', query: 'Show today sold gold' },
+    { label: '🚚 Transfers', query: 'Show pending transfers' },
+    { label: '🏢 Branches', query: 'Show all branches breakdown' },
   ];
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -713,13 +1053,12 @@ export function AIAssistantModal() {
             className={`bg-[#0a0f1c] border border-slate-800 shadow-2xl overflow-hidden flex flex-col transition-all duration-300 rounded-t-3xl sm:rounded-2xl ${
               isExpanded
                 ? 'w-full h-[95vh] sm:max-w-4xl'
-                : 'w-full h-[88vh] sm:max-w-[440px] sm:h-[700px]'
+                : 'w-full h-[88vh] sm:max-w-[460px] sm:h-[710px]'
             }`}
           >
             {/* ── HEADER ─────────────────────────────────────────────────── */}
             <div className="px-4 py-3.5 bg-[#0d1220] border-b border-slate-800/80 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
-                {/* Ruby gem avatar */}
                 <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-rose-600 via-red-500 to-rose-800 flex items-center justify-center shadow-lg shadow-rose-900/40">
                   <Gem className="w-5 h-5 text-white" />
                   <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 border-2 border-[#0d1220]" />
@@ -731,35 +1070,50 @@ export function AIAssistantModal() {
                       VOICE AI
                     </span>
                   </div>
-                  <p className="text-[10px] text-slate-500 font-mono mt-0.5">Synced with Uploaded Inventory</p>
+                  <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                    Live Synced • {goldItems.length} Gold & {diamondItems.length} Diamonds
+                  </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-1">
+                {isSpeaking && (
+                  <button
+                    onClick={stopSpeaking}
+                    className="px-2 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-mono font-bold flex items-center gap-1 mr-1 cursor-pointer"
+                    title="Stop voice readout"
+                  >
+                    <Square className="w-2.5 h-2.5 fill-current" />
+                    Stop
+                  </button>
+                )}
                 <button
                   onClick={() => setShowSettings(!showSettings)}
-                  className={`p-1.5 rounded-lg transition-colors ${showSettings ? 'text-[#fed65b] bg-slate-800' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800'}`}
-                  title="Gemini API Key"
+                  className={`p-1.5 rounded-lg transition-colors cursor-pointer ${showSettings ? 'text-[#fed65b] bg-slate-800' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`}
+                  title="Optional Gemini API Key"
                 >
                   <Key className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => setTtsEnabled(!ttsEnabled)}
-                  className={`p-1.5 rounded-lg transition-colors ${ttsEnabled ? 'text-[#fed65b] bg-slate-800' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800'}`}
-                  title={ttsEnabled ? 'Mute voice' : 'Enable voice readout'}
+                  onClick={() => {
+                    if (ttsEnabled) stopSpeaking();
+                    setTtsEnabled(!ttsEnabled);
+                  }}
+                  className={`p-1.5 rounded-lg transition-colors cursor-pointer ${ttsEnabled ? 'text-[#fed65b] bg-slate-800' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800'}`}
+                  title={ttsEnabled ? 'Voice Readout ON (Click to Mute)' : 'Voice Readout OFF (Click to Enable)'}
                 >
                   {ttsEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
                 </button>
                 <button
                   onClick={() => setIsExpanded(!isExpanded)}
-                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-slate-800 transition-colors hidden sm:flex"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors hidden sm:flex cursor-pointer"
                   title={isExpanded ? 'Collapse' : 'Expand'}
                 >
                   {isExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
                 </button>
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -770,7 +1124,7 @@ export function AIAssistantModal() {
             {showSettings && (
               <div className="bg-[#0d1220] border-b border-slate-800 px-4 py-3 shrink-0">
                 <p className="text-[11px] font-bold text-[#fed65b] font-mono mb-2 flex items-center gap-1.5">
-                  <Key className="w-3.5 h-3.5" /> Google Gemini API Key
+                  <Key className="w-3.5 h-3.5" /> Google Gemini API Key (Optional)
                 </p>
                 <div className="flex gap-2">
                   <input
@@ -780,44 +1134,76 @@ export function AIAssistantModal() {
                     placeholder="AIzaSy... (Paste Gemini API Key)"
                     className="flex-1 px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-white placeholder:text-slate-500 focus:outline-none focus:border-[#fed65b]"
                   />
-                  <button onClick={handleSaveApiKey} className="px-3 py-1.5 rounded-lg bg-[#fed65b] text-[#0f172a] text-xs font-bold hover:bg-[#ffe28a] transition-colors">
+                  <button onClick={handleSaveApiKey} className="px-3 py-1.5 rounded-lg bg-[#fed65b] text-[#0f172a] text-xs font-bold hover:bg-[#ffe28a] transition-colors cursor-pointer">
                     Save
                   </button>
                 </div>
                 {isKeySaved && (
                   <p className="text-[10px] text-emerald-400 font-mono mt-1.5 flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" /> Gemini API Key connected
+                    <CheckCircle2 className="w-3 h-3" /> Gemini API Key saved
                   </p>
                 )}
               </div>
             )}
 
-            {/* ── VOICE STATUS BAR ───────────────────────────────────────── */}
-            <div className={`px-4 py-2 border-b border-slate-800/60 flex items-center justify-between shrink-0 transition-colors ${isListening ? 'bg-rose-950/30' : 'bg-[#0d1220]'}`}>
-              <div className="flex items-center gap-2">
+            {/* ── VOICE STATUS & LANGUAGE BAR ────────────────────────────── */}
+            <div className={`px-4 py-2 border-b border-slate-800/60 flex items-center justify-between gap-2 shrink-0 transition-colors ${isListening ? 'bg-rose-950/40' : 'bg-[#0d1220]'}`}>
+              <div className="flex items-center gap-2 min-w-0">
                 {isListening ? (
-                  <div className="flex items-center gap-1.5">
-                    <div className="relative flex items-center justify-center w-4 h-4">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <div className="relative flex items-center justify-center w-4 h-4 shrink-0">
                       <span className="absolute w-4 h-4 rounded-full bg-rose-500 opacity-30 animate-pulse-ring" />
                       <span className="w-2 h-2 rounded-full bg-rose-500" />
                     </div>
-                    <span className="text-[11px] text-rose-400 font-mono font-semibold">Listening...</span>
+                    <span className="text-[11px] text-rose-400 font-mono font-semibold shrink-0">Listening...</span>
                     {voiceTranscript && (
-                      <span className="text-[11px] text-slate-300 font-mono truncate max-w-[160px]">"{voiceTranscript}"</span>
+                      <span className="text-[11px] text-white font-mono truncate">
+                        &ldquo;{voiceTranscript}&rdquo;
+                      </span>
                     )}
+                  </div>
+                ) : voiceError ? (
+                  <div className="flex items-center gap-1.5 text-amber-300 text-[10px] font-mono truncate">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+                    <span className="truncate">{voiceError}</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-[11px] text-slate-400 font-mono">
-                      {voiceSupported ? 'Voice Support Active • Click mic or speak' : 'Voice Support Not Available'}
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                    <span className="text-[11px] text-slate-400 font-mono truncate">
+                      {voiceSupported ? 'Mic Ready • Tap Mic to speak' : 'Voice unsupported in this browser'}
                     </span>
                   </div>
                 )}
               </div>
-              <span className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded ${isListening ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}`}>
-                {isListening ? 'ACTIVE' : 'READY'}
-              </span>
+
+              {/* Voice Language Switcher */}
+              {voiceSupported && (
+                <div className="flex items-center gap-1 shrink-0 bg-slate-900 border border-slate-700/80 rounded-lg p-0.5">
+                  {(
+                    [
+                      { code: 'en-IN', label: 'EN' },
+                      { code: 'ml-IN', label: 'ML' },
+                      { code: 'hi-IN', label: 'HI' }
+                    ] as const
+                  ).map(lang => (
+                    <button
+                      key={lang.code}
+                      type="button"
+                      onClick={() => setVoiceLang(lang.code)}
+                      disabled={isListening}
+                      className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                        voiceLang === lang.code
+                          ? 'bg-[#fed65b] text-slate-950'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                      title={`Voice recognition language: ${lang.code}`}
+                    >
+                      {lang.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* ── CHAT MESSAGES ─────────────────────────────────────────── */}
@@ -831,7 +1217,6 @@ export function AIAssistantModal() {
                   )}
 
                   <div className={`max-w-[88%] sm:max-w-[82%] ${msg.sender === 'user' ? '' : 'w-full'}`}>
-                    {/* Voice query label */}
                     {msg.isVoice && msg.sender === 'user' && (
                       <p className="text-[10px] text-slate-500 font-mono mb-1 text-right flex items-center justify-end gap-1">
                         <Mic className="w-3 h-3" /> Voice Query
@@ -851,11 +1236,21 @@ export function AIAssistantModal() {
                         </div>
                       )}
 
-                      <div className="mt-2 text-[9px] font-mono text-slate-600 flex items-center justify-end gap-1.5">
+                      <div className="mt-2 text-[9px] font-mono text-slate-500 flex items-center justify-end gap-1.5">
                         {msg.sender === 'ai' && (
-                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-950/60 text-rose-400 border border-rose-900/40 font-bold">
-                            RUBY • AI
-                          </span>
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => speakText(msg.text, true)}
+                              className="text-slate-400 hover:text-[#fed65b] transition-colors cursor-pointer"
+                              title="Play voice readout"
+                            >
+                              <Volume2 className="w-3 h-3" />
+                            </button>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-950/60 text-rose-400 border border-rose-900/40 font-bold">
+                              RUBY • AI
+                            </span>
+                          </>
                         )}
                         <span>{msg.timestamp}</span>
                       </div>
@@ -879,7 +1274,7 @@ export function AIAssistantModal() {
                     <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-bounce" />
                     <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-bounce [animation-delay:0.2s]" />
                     <span className="w-1.5 h-1.5 rounded-full bg-[#fed65b] animate-bounce [animation-delay:0.4s]" />
-                    <span className="font-mono text-[11px] text-slate-500 ml-1">RUBY analyzing vault data...</span>
+                    <span className="font-mono text-[11px] text-slate-400 ml-1">RUBY searching live stock...</span>
                   </div>
                 </div>
               )}
@@ -889,12 +1284,12 @@ export function AIAssistantModal() {
 
             {/* ── QUICK PROMPTS ─────────────────────────────────────────── */}
             <div className="px-3 py-2.5 border-t border-slate-800/60 bg-[#0d1220] flex items-center gap-2 overflow-x-auto custom-scrollbar whitespace-nowrap shrink-0">
-              <span className="text-[10px] font-mono text-slate-600 uppercase tracking-wider shrink-0">Quick:</span>
+              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider shrink-0">Quick:</span>
               {quickPrompts.map((p, i) => (
                 <button
                   key={i}
                   onClick={() => handleSendMessage(p.query)}
-                  className="px-2.5 py-1.5 rounded-full bg-slate-800/80 border border-slate-700/60 text-[11px] text-slate-300 hover:text-white hover:bg-slate-700 hover:border-slate-600 font-mono shrink-0 transition-colors flex items-center gap-1"
+                  className="px-2.5 py-1.5 rounded-full bg-slate-800/80 border border-slate-700/60 text-[11px] text-slate-300 hover:text-white hover:bg-slate-700 hover:border-slate-600 font-mono shrink-0 transition-colors flex items-center gap-1 cursor-pointer"
                 >
                   {p.label}
                 </button>
@@ -911,10 +1306,10 @@ export function AIAssistantModal() {
                   <input
                     ref={inputRef}
                     type="text"
-                    value={inputText}
+                    value={isListening ? voiceTranscript : inputText}
                     onChange={e => setInputText(e.target.value)}
-                    placeholder="Ask Ruby or tap mic to speak..."
-                    className="w-full pl-4 pr-4 py-2.5 bg-slate-900/80 border border-slate-700/80 rounded-xl text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-slate-600 focus:bg-slate-900 font-mono transition-all"
+                    placeholder={isListening ? 'Speak now...' : 'Ask Ruby (e.g. S1 gold stock, Tag No, Held)...'}
+                    className="w-full pl-4 pr-4 py-2.5 bg-slate-900/80 border border-slate-700/80 rounded-xl text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-[#fed65b]/60 focus:bg-slate-900 font-mono transition-all"
                     disabled={isListening}
                   />
                 </div>
@@ -923,7 +1318,7 @@ export function AIAssistantModal() {
                 <button
                   type="submit"
                   disabled={!inputText.trim() || isThinking || isListening}
-                  className="w-9 h-9 rounded-xl bg-[#fed65b] text-slate-950 hover:bg-[#ffe28a] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center shadow-md transition-all active:scale-95 shrink-0"
+                  className="w-9 h-9 rounded-xl bg-[#fed65b] text-slate-950 hover:bg-[#ffe28a] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center shadow-md transition-all active:scale-95 shrink-0 cursor-pointer"
                   title="Send"
                 >
                   <Send className="w-4 h-4" />
@@ -935,22 +1330,17 @@ export function AIAssistantModal() {
                     type="button"
                     onClick={isListening ? stopListening : startListening}
                     disabled={isThinking}
-                    className={`relative w-9 h-9 rounded-xl flex items-center justify-center shadow-md transition-all active:scale-95 shrink-0 ${
+                    className={`relative w-9 h-9 rounded-xl flex items-center justify-center shadow-md transition-all active:scale-95 shrink-0 cursor-pointer ${
                       isListening
                         ? 'bg-rose-600 text-white shadow-rose-900/50'
-                        : 'bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700'
+                        : 'bg-slate-800 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700'
                     }`}
-                    title={isListening ? 'Stop listening' : 'Start voice input'}
+                    title={isListening ? 'Stop listening & send' : 'Tap to speak (Voice Chat)'}
                   >
                     {isListening ? (
                       <>
                         <span className="absolute inset-0 rounded-xl bg-rose-500 opacity-30 animate-pulse-ring" />
-                        <div className="flex items-end gap-[2px] h-4">
-                          <span className="w-[3px] bg-white rounded-full mic-wave-bar" style={{ height: 4 }} />
-                          <span className="w-[3px] bg-white rounded-full mic-wave-bar" style={{ height: 4 }} />
-                          <span className="w-[3px] bg-white rounded-full mic-wave-bar" style={{ height: 4 }} />
-                          <span className="w-[3px] bg-white rounded-full mic-wave-bar" style={{ height: 4 }} />
-                        </div>
+                        <MicOff className="w-4 h-4 relative z-10" />
                       </>
                     ) : (
                       <Mic className="w-4 h-4" />
@@ -965,4 +1355,3 @@ export function AIAssistantModal() {
     </>
   );
 }
-
