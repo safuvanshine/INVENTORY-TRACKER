@@ -153,9 +153,10 @@ h1, h2, h3, h4, .font-headline {
 .moving-red-light-box {
   position: relative;
   overflow: hidden;
-  border-radius: 0.65rem;
-  padding: 2.5px;
-  box-shadow: 0 0 16px rgba(239, 68, 68, 0.55), 0 0 6px rgba(220, 38, 38, 0.45);
+  border-radius: 0.75rem;
+  padding: 3px;
+  background: rgba(239, 68, 68, 0.15);
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.45);
 }
 
 .moving-red-light-box::before {
@@ -163,18 +164,18 @@ h1, h2, h3, h4, .font-headline {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 300%;
-  height: 300%;
+  width: 2200px;
+  height: 2200px;
   background: conic-gradient(
     transparent 0deg,
-    transparent 190deg,
-    rgba(239, 68, 68, 0.35) 230deg,
-    #ef4444 280deg,
-    #ff1e1e 325deg,
-    #ffffff 348deg,
+    transparent 230deg,
+    rgba(239, 68, 68, 0.35) 265deg,
+    #ef4444 310deg,
+    #ff1e1e 340deg,
+    #ffffff 352deg,
     #ef4444 360deg
   );
-  animation: spin-red-light 1.6s linear infinite;
+  animation: spin-red-light 2.2s linear infinite;
   z-index: 0;
   pointer-events: none;
 }
@@ -182,7 +183,8 @@ h1, h2, h3, h4, .font-headline {
 .moving-red-light-inner {
   position: relative;
   z-index: 1;
-  border-radius: calc(0.65rem - 2.5px);
+  background-color: #ffffff;
+  border-radius: calc(0.75rem - 3px);
 }
 
 .moving-red-light-chip {

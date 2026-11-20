@@ -115,7 +115,7 @@ export function Sidebar() {
               className={cn(
                 'flex items-center justify-between px-3.5 py-3 rounded-lg text-sm font-medium transition-all duration-200 group relative',
                 isBranchAlert
-                  ? 'moving-red-light-inner bg-white text-red-700 font-bold'
+                  ? 'moving-red-light-inner bg-white text-slate-900 font-bold'
                   : isActive
                   ? 'bg-white text-[#735c00] font-bold border-l-4 border-[#d4af37] shadow-sm'
                   : 'text-slate-600 hover:bg-slate-200/60 hover:text-slate-900'
@@ -125,18 +125,14 @@ export function Sidebar() {
                 <Icon
                   className={cn(
                     'w-4 h-4 transition-colors',
-                    isBranchAlert
-                      ? 'text-red-600 animate-pulse'
-                      : isActive
-                      ? 'text-[#d4af37]'
-                      : 'text-slate-500 group-hover:text-slate-800'
+                    isActive ? 'text-[#d4af37]' : 'text-slate-600 group-hover:text-slate-900'
                   )}
                 />
                 <span className="text-[13px]">{item.name}</span>
               </div>
 
               {isBranchAlert ? (
-                <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-extrabold tracking-wider uppercase bg-red-600 text-white animate-pulse shadow-xs">
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold tracking-wider uppercase bg-slate-900 text-[#fed65b]">
                   {incomingTransfersCount} NEW
                 </span>
               ) : (

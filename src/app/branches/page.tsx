@@ -510,16 +510,16 @@ export default function BranchesPage() {
 
           return (
             <div className="moving-red-light-box rounded-2xl">
-            <section className="moving-red-light-inner bg-red-50/95 rounded-2xl p-5 shadow-sm space-y-3.5 animate-in fade-in">
+            <section className="moving-red-light-inner bg-white rounded-[13px] p-5 space-y-3.5 animate-in fade-in">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-red-600 text-white flex items-center justify-center font-bold animate-pulse">
+                  <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold">
                     <ArrowRight className="w-5 h-5" />
                   </div>
                   <div>
                     <h2 className="text-sm sm:text-base font-bold text-slate-900 font-headline flex items-center gap-2">
                       <span>Incoming Stock Transfers Waiting for Acceptance</span>
-                      <span className="px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-mono animate-pulse">
+                      <span className="px-2 py-0.5 rounded-full bg-blue-600 text-white text-xs font-mono">
                         {allIncoming.length} Pending
                       </span>
                     </h2>
@@ -675,7 +675,7 @@ export default function BranchesPage() {
                     }}
                     className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold transition-all cursor-pointer ${
                       hasIncomingForCode
-                        ? 'moving-red-light-chip-inner bg-red-600 text-white'
+                        ? 'moving-red-light-chip-inner bg-white text-slate-900'
                         : activeBranchCode === code || (code === 'ALL' && selectedBranchKey === 'ALL')
                         ? 'bg-[#d4af37] text-slate-950 shadow-sm'
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'

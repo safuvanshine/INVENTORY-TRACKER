@@ -310,11 +310,11 @@ export function TopHeader() {
               <Link
                 href="/branches"
                 onClick={() => setShowMobileMenu(false)}
-                className="moving-red-light-inner bg-white px-3 py-3 flex items-center justify-between text-sm font-bold text-red-700"
+                className="moving-red-light-inner bg-white px-3 py-3 flex items-center justify-between text-sm font-bold text-slate-900"
               >
                 <span>Branch Status</span>
-                <span className="px-2 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-mono font-bold animate-pulse">
-                  {incomingTransfersCount} INCOMING
+                <span className="px-2 py-0.5 rounded-full bg-slate-900 text-[#fed65b] text-[10px] font-mono font-bold">
+                  {incomingTransfersCount} NEW
                 </span>
               </Link>
             </div>
